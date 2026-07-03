@@ -4,6 +4,12 @@
 
 openbook is an Electron-based note-taking and research tool. It helps you organize research around topics, collect sources, write notes, and get assistance from LLM agents that are aware of your research context.
 
+## Core Principles
+
+- **Local-first.** Notes, sources, and projects live on your filesystem as plain files. Nothing is uploaded to the cloud.
+- **Your files, your tools.** Every note and source is a regular file that you can open, edit, or move with any other program outside of openbook.
+- **Read, don't store.** LLM agents read your files to answer questions and assist with research, but openbook never stores or uploads your content.
+
 ## Features
 
 - **Research Topics** — Create topics to organize your work. Each topic is a self-contained workspace for a research area.
