@@ -10,4 +10,14 @@ contextBridge.exposeInMainWorld("electron", {
     listFiles: (workspacePath: string) =>
       ipcRenderer.invoke("workspace:list-files", workspacePath),
   },
+  notes: {
+    create: (workspacePath: string) =>
+      ipcRenderer.invoke("notes:create", workspacePath),
+    read: (filePath: string) => ipcRenderer.invoke("notes:read", filePath),
+    write: (filePath: string, content: string) =>
+      ipcRenderer.invoke("notes:write", filePath, content),
+    rename: (oldPath: string, newBaseName: string) =>
+      ipcRenderer.invoke("notes:rename", oldPath, newBaseName),
+    delete: (filePath: string) => ipcRenderer.invoke("notes:delete", filePath),
+  },
 });

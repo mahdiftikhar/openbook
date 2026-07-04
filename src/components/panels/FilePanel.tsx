@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import {
+  FilePlus2,
   File as FileIcon,
   Folder,
   FolderOpen,
@@ -9,6 +10,7 @@ import {
   Hash,
 } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 function TreeItem({
@@ -82,16 +84,29 @@ function TreeItem({
 export function FilePanel({
   workspacePath,
   workspaceName,
+  activeNotePath,
+  refreshKey,
+  onOpenNote,
+  onNotesChanged,
 }: {
   workspacePath: string;
   workspaceName: string;
+  activeNotePath: string | null;
+  refreshKey: number;
+  onOpenNote: (path: string) => void;
+  onNotesChanged: () => void;
 }) {
   const [tree, setTree] = useState<FileNode[]>([]);
-  const [selectedPath, setSelectedPath] = useState<string | null>(null);
 
   useEffect(() => {
     window.electron.workspace.listFiles(workspacePath).then(setTree);
-  }, [workspacePath]);
+  }, [workspacePath, refreshKey]);
+
+  const handleNew = async () => {
+    const filePath = await window.electron.notes.create(workspacePath);
+    onOpenNote(filePath);
+    onNotesChanged();
+  };
 
   return (
     <aside className="flex h-full flex-col bg-sidebar">
@@ -99,6 +114,15 @@ export function FilePanel({
         <h2 className="text-xs font-semibold uppercase tracking-wide text-sidebar-foreground/70">
           Project Files
         </h2>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-6"
+          aria-label="New note"
+          onClick={handleNew}
+        >
+          <FilePlus2 className="size-3.5" />
+        </Button>
       </div>
       <div className="px-3 py-2">
         <div className="flex items-center gap-2 rounded-md border border-input bg-background px-2">
@@ -119,8 +143,8 @@ export function FilePanel({
             key={node.path}
             node={node}
             depth={0}
-            selectedPath={selectedPath}
-            onSelect={setSelectedPath}
+            selectedPath={activeNotePath}
+            onSelect={onOpenNote}
           />
         ))}
       </div>

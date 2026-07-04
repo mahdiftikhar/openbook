@@ -17,5 +17,12 @@ interface Window {
       clear: () => Promise<void>;
       listFiles: (workspacePath: string) => Promise<FileNode[]>;
     };
+    notes: {
+      create: (workspacePath: string) => Promise<string>;
+      read: (filePath: string) => Promise<string | null>;
+      write: (filePath: string, content: string) => Promise<boolean>;
+      rename: (oldPath: string, newBaseName: string) => Promise<string | null>;
+      delete: (filePath: string) => Promise<boolean>;
+    };
   };
 }

@@ -24,6 +24,8 @@ export function App() {
   const [dark, setDark] = useState(true);
   const [workspacePath, setWorkspacePath] = useState<string | null>(null);
   const [checkingWorkspace, setCheckingWorkspace] = useState(true);
+  const [activeNotePath, setActiveNotePath] = useState<string | null>(null);
+  const [notesVersion, setNotesVersion] = useState(0);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", dark);
@@ -92,13 +94,22 @@ export function App() {
             <FilePanel
               workspacePath={workspacePath}
               workspaceName={workspaceName}
+              activeNotePath={activeNotePath}
+              refreshKey={notesVersion}
+              onOpenNote={setActiveNotePath}
+              onNotesChanged={() => setNotesVersion((v) => v + 1)}
             />
           </Panel>
 
           <ResizeHandle />
 
           <Panel minSize="30%" style={{ overflow: "hidden" }}>
-            <NotePanel />
+            <NotePanel
+              workspacePath={workspacePath}
+              notePath={activeNotePath}
+              onChangeNotePath={setActiveNotePath}
+              onNotesChanged={() => setNotesVersion((v) => v + 1)}
+            />
           </Panel>
 
           <ResizeHandle />
