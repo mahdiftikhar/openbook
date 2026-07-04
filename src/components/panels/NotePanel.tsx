@@ -196,7 +196,7 @@ export function NotePanel() {
           className="flex flex-col overflow-hidden data-[state=inactive]:hidden"
         >
           <div className="shrink-0">
-            <div className="mx-3 mt-3 flex gap-3 rounded-lg border border-violet-500/20 bg-violet-500/[0.04] p-3">
+            <div className="mx-3 mt-3 flex gap-3 rounded-lg border border-violet-500/20 bg-violet-500/4 p-3">
               <div className="w-0.5 self-stretch rounded-full bg-violet-500/40" />
               <div className="min-w-0 flex-1">
                 <div className="mb-1 flex items-center gap-1.5">
@@ -228,7 +228,7 @@ export function NotePanel() {
             className={cn(
               "min-h-0 flex-1 resize-none p-4 font-mono text-sm leading-relaxed outline-none placeholder:text-muted-foreground",
               NOTE_DATA.scratch.author === "ai"
-                ? "border-l-2 border-violet-500/40 bg-violet-500/[0.03]"
+                ? "border-l-2 border-violet-500/40 bg-violet-500/3"
                 : "bg-transparent",
             )}
             placeholder="Start writing..."

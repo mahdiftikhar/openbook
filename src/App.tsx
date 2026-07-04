@@ -5,6 +5,7 @@ import { TopBar } from "@/components/layout/TopBar";
 import { FilePanel } from "@/components/panels/FilePanel";
 import { NotePanel } from "@/components/panels/NotePanel";
 import { ChatPanel } from "@/components/panels/ChatPanel";
+import { Onboarding } from "@/components/Onboarding";
 
 function ResizeHandle() {
   return (
@@ -21,14 +22,21 @@ export function App() {
   const [filesOpen, setFilesOpen] = useState(true);
   const [chatOpen, setChatOpen] = useState(true);
   const [dark, setDark] = useState(true);
+  const [workspacePath, setWorkspacePath] = useState<string | null>(null);
+  const [checkingWorkspace, setCheckingWorkspace] = useState(true);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", dark);
   }, [dark]);
 
-  const togglePanel = (
-    ref: ReturnType<typeof usePanelRef>,
-  ) => {
+  useEffect(() => {
+    window.electron.workspace.getPath().then((savedPath) => {
+      setWorkspacePath(savedPath);
+      setCheckingWorkspace(false);
+    });
+  }, []);
+
+  const togglePanel = (ref: ReturnType<typeof usePanelRef>) => {
     const panel = ref.current;
     if (!panel) return;
     if (panel.isCollapsed()) {
@@ -38,15 +46,36 @@ export function App() {
     }
   };
 
+  if (checkingWorkspace) return null;
+
+  if (!workspacePath) {
+    return <Onboarding onComplete={setWorkspacePath} />;
+  }
+
+  const handleSwitchWorkspace = async () => {
+    const newPath = await window.electron.workspace.pickExisting();
+    if (newPath) setWorkspacePath(newPath);
+  };
+
+  const handleCloseWorkspace = async () => {
+    await window.electron.workspace.clear();
+    setWorkspacePath(null);
+  };
+
+  const workspaceName = workspacePath.split(/[/\\]/).pop() || workspacePath;
+
   return (
     <div className="flex h-screen w-screen flex-col overflow-hidden bg-background text-foreground">
       <TopBar
+        workspaceName={workspaceName}
         filesOpen={filesOpen}
         onToggleFiles={() => togglePanel(filePanelRef)}
         chatOpen={chatOpen}
         onToggleChat={() => togglePanel(chatPanelRef)}
         dark={dark}
         onToggleDark={() => setDark((v) => !v)}
+        onSwitchWorkspace={handleSwitchWorkspace}
+        onCloseWorkspace={handleCloseWorkspace}
       />
       <div className="min-h-0 flex-1">
         <Group orientation="horizontal" className="h-full w-full">
@@ -60,7 +89,10 @@ export function App() {
             onResize={() => setFilesOpen(!filePanelRef.current?.isCollapsed())}
             style={{ overflow: "hidden" }}
           >
-            <FilePanel />
+            <FilePanel
+              workspacePath={workspacePath}
+              workspaceName={workspaceName}
+            />
           </Panel>
 
           <ResizeHandle />

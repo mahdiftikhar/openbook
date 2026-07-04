@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   File as FileIcon,
   Folder,
@@ -11,46 +11,17 @@ import {
 
 import { cn } from "@/lib/utils";
 
-type FileNode = {
-  name: string;
-  type: "file" | "folder";
-  children?: FileNode[];
-  active?: boolean;
-};
-
-// TODO: This is just some static files -- this will need to be update
-// to reflect actual file storage. Meta-data / structure for files will probably
-// be need to be maintained here
-const TREE: FileNode[] = [
-  {
-    name: "Notes",
-    type: "folder",
-    children: [
-      { name: "meeting-2024.md", type: "file", active: true },
-      { name: "ideas.md", type: "file" },
-      { name: "summary.md", type: "file" },
-    ],
-  },
-  {
-    name: "Sources",
-    type: "folder",
-    children: [
-      { name: "research-paper.pdf", type: "file" },
-      { name: "article.md", type: "file" },
-      { name: "transcript.txt", type: "file" },
-    ],
-  },
-  {
-    name: "References",
-    type: "folder",
-    children: [
-      { name: "bibliography.md", type: "file" },
-      { name: "glossary.md", type: "file" },
-    ],
-  },
-];
-
-function TreeItem({ node, depth }: { node: FileNode; depth: number }) {
+function TreeItem({
+  node,
+  depth,
+  selectedPath,
+  onSelect,
+}: {
+  node: FileNode;
+  depth: number;
+  selectedPath: string | null;
+  onSelect: (path: string) => void;
+}) {
   const [open, setOpen] = useState(depth === 0);
 
   if (node.type === "folder") {
@@ -75,17 +46,26 @@ function TreeItem({ node, depth }: { node: FileNode; depth: number }) {
         </button>
         {open &&
           node.children?.map((child) => (
-            <TreeItem key={child.name} node={child} depth={depth + 1} />
+            <TreeItem
+              key={child.path}
+              node={child}
+              depth={depth + 1}
+              selectedPath={selectedPath}
+              onSelect={onSelect}
+            />
           ))}
       </div>
     );
   }
 
+  const isActive = node.path === selectedPath;
+
   return (
     <button
+      onClick={() => onSelect(node.path)}
       className={cn(
         "flex w-full items-center gap-1.5 rounded px-1.5 py-1 text-left text-sm hover:bg-accent",
-        node.active && "bg-accent font-medium",
+        isActive && "bg-accent font-medium",
       )}
       style={{ paddingLeft: depth * 12 + 20 }}
     >
@@ -99,7 +79,20 @@ function TreeItem({ node, depth }: { node: FileNode; depth: number }) {
   );
 }
 
-export function FilePanel() {
+export function FilePanel({
+  workspacePath,
+  workspaceName,
+}: {
+  workspacePath: string;
+  workspaceName: string;
+}) {
+  const [tree, setTree] = useState<FileNode[]>([]);
+  const [selectedPath, setSelectedPath] = useState<string | null>(null);
+
+  useEffect(() => {
+    window.electron.workspace.listFiles(workspacePath).then(setTree);
+  }, [workspacePath]);
+
   return (
     <aside className="flex h-full flex-col bg-sidebar">
       <div className="flex items-center justify-between border-b border-sidebar-border px-3 py-2.5">
@@ -119,10 +112,16 @@ export function FilePanel() {
       <div className="flex-1 overflow-y-auto px-2 pb-3">
         <div className="mb-1 flex items-center gap-1.5 px-1.5 py-1 text-xs font-medium text-muted-foreground">
           <Folder className="size-3.5" />
-          <span>research-project</span>
+          <span>{workspaceName}</span>
         </div>
-        {TREE.map((node) => (
-          <TreeItem key={node.name} node={node} depth={0} />
+        {tree.map((node) => (
+          <TreeItem
+            key={node.path}
+            node={node}
+            depth={0}
+            selectedPath={selectedPath}
+            onSelect={setSelectedPath}
+          />
         ))}
       </div>
     </aside>

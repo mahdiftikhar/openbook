@@ -1,7 +1,21 @@
 /// <reference types="@electron-forge/plugin-vite/forge-vite-env" />
 
+interface FileNode {
+  name: string;
+  type: "file" | "folder";
+  path: string;
+  children?: FileNode[];
+}
+
 interface Window {
   electron: {
     platform: string;
+    workspace: {
+      getPath: () => Promise<string | null>;
+      pickExisting: () => Promise<string | null>;
+      createNew: () => Promise<string | null>;
+      clear: () => Promise<void>;
+      listFiles: (workspacePath: string) => Promise<FileNode[]>;
+    };
   };
 }
