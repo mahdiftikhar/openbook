@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   FilePlus2,
   File as FileIcon,
@@ -8,6 +8,11 @@ import {
   ChevronDown,
   Search,
   Hash,
+  FileText,
+  Plus,
+  Trash2,
+  Check,
+  AlertCircle,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -18,11 +23,15 @@ function TreeItem({
   depth,
   selectedPath,
   onSelect,
+  getSourceEntry,
+  onDeleteSource,
 }: {
   node: FileNode;
   depth: number;
   selectedPath: string | null;
   onSelect: (path: string) => void;
+  getSourceEntry?: (filePath: string) => SourceEntry | undefined;
+  onDeleteSource?: (fileName: string) => void;
 }) {
   const [open, setOpen] = useState(depth === 0);
 
@@ -54,6 +63,8 @@ function TreeItem({
               depth={depth + 1}
               selectedPath={selectedPath}
               onSelect={onSelect}
+              getSourceEntry={getSourceEntry}
+              onDeleteSource={onDeleteSource}
             />
           ))}
       </div>
@@ -61,23 +72,50 @@ function TreeItem({
   }
 
   const isActive = node.path === selectedPath;
+  const fileName = node.name.split(/[/\\]/).pop() ?? node.name;
+  const sourceEntry = getSourceEntry?.(node.path);
+  const isSource = sourceEntry !== undefined;
 
   return (
-    <button
-      onClick={() => onSelect(node.path)}
+    <div
       className={cn(
-        "flex w-full items-center gap-1.5 rounded px-1.5 py-1 text-left text-sm hover:bg-accent",
+        "group flex items-center rounded px-1.5 py-1 hover:bg-accent",
         isActive && "bg-accent font-medium",
       )}
-      style={{ paddingLeft: depth * 12 + 20 }}
     >
-      {node.name.endsWith(".md") ? (
-        <Hash className="size-3.5 shrink-0 text-muted-foreground" />
-      ) : (
-        <FileIcon className="size-3.5 shrink-0 text-muted-foreground" />
+      <button
+        onClick={() => onSelect(node.path)}
+        className="flex min-w-0 flex-1 items-center gap-1.5 truncate text-left text-sm"
+        style={{ paddingLeft: depth * 12 + 14 }}
+      >
+        {isSource ? (
+          <FileText className="size-3.5 shrink-0 text-muted-foreground" />
+        ) : node.name.endsWith(".md") ? (
+          <Hash className="size-3.5 shrink-0 text-muted-foreground" />
+        ) : (
+          <FileIcon className="size-3.5 shrink-0 text-muted-foreground" />
+        )}
+        <span className="truncate">{node.name}</span>
+      </button>
+      {isSource && sourceEntry.status === "ready" && (
+        <Check className="size-3 shrink-0 text-green-500" />
       )}
-      <span className="truncate">{node.name}</span>
-    </button>
+      {isSource && sourceEntry.status === "error" && (
+        <AlertCircle
+          className="size-3 shrink-0 text-destructive"
+          aria-label={sourceEntry.error ?? "Error"}
+        />
+      )}
+      {isSource && onDeleteSource && (
+        <button
+          onClick={() => onDeleteSource(fileName)}
+          className="shrink-0 rounded p-0.5 opacity-0 hover:bg-accent-foreground/10 group-hover:opacity-100"
+          aria-label={`Remove ${node.name}`}
+        >
+          <Trash2 className="size-3 text-muted-foreground" />
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -97,14 +135,65 @@ export function FilePanel({
   onNotesChanged: () => void;
 }) {
   const [tree, setTree] = useState<FileNode[]>([]);
+  const [sourceEntries, setSourceEntries] = useState<SourceEntry[]>([]);
+  const [localVersion, setLocalVersion] = useState(0);
 
   useEffect(() => {
     window.electron.workspace.listFiles(workspacePath).then(setTree);
-  }, [workspacePath, refreshKey]);
+    window.electron.sources.list(workspacePath).then(setSourceEntries);
+  }, [workspacePath, refreshKey, localVersion]);
+
+  const sourceMap = useMemo(() => {
+    const map: Record<string, SourceEntry> = {};
+    for (const entry of sourceEntries) {
+      map[entry.fileName] = entry;
+    }
+    return map;
+  }, [sourceEntries]);
+
+  const getSourceEntry = useCallback(
+    (filePath: string) => {
+      const name = filePath.split(/[/\\]/).pop();
+      return name ? sourceMap[name] : undefined;
+    },
+    [sourceMap],
+  );
+
+  const isInSources = useCallback((filePath: string) => {
+    const parts = filePath.split(/[/\\]/).filter(Boolean);
+    return (
+      parts.length >= 2 && parts[parts.length - 2] === "sources"
+    );
+  }, []);
+
+  const handleSelect = useCallback(
+    (filePath: string) => {
+      if (isInSources(filePath)) {
+        window.electron.sources.open(filePath);
+      } else {
+        onOpenNote(filePath);
+      }
+    },
+    [isInSources, onOpenNote],
+  );
 
   const handleNew = async () => {
     const filePath = await window.electron.notes.create(workspacePath);
     onOpenNote(filePath);
+    onNotesChanged();
+  };
+
+  const handleAddPdf = async () => {
+    const entry = await window.electron.sources.addPdf(workspacePath);
+    if (entry) {
+      setLocalVersion((v) => v + 1);
+      onNotesChanged();
+    }
+  };
+
+  const handleDeleteSource = async (fileName: string) => {
+    await window.electron.sources.remove(workspacePath, fileName);
+    setLocalVersion((v) => v + 1);
     onNotesChanged();
   };
 
@@ -114,15 +203,26 @@ export function FilePanel({
         <h2 className="text-xs font-semibold uppercase tracking-wide text-sidebar-foreground/70">
           Project Files
         </h2>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-6"
-          aria-label="New note"
-          onClick={handleNew}
-        >
-          <FilePlus2 className="size-3.5" />
-        </Button>
+        <div className="flex items-center gap-0.5">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-6"
+            aria-label="Add PDF source"
+            onClick={handleAddPdf}
+          >
+            <Plus className="size-3.5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-6"
+            aria-label="New note"
+            onClick={handleNew}
+          >
+            <FilePlus2 className="size-3.5" />
+          </Button>
+        </div>
       </div>
       <div className="px-3 py-2">
         <div className="flex items-center gap-2 rounded-md border border-input bg-background px-2">
@@ -144,7 +244,9 @@ export function FilePanel({
             node={node}
             depth={0}
             selectedPath={activeNotePath}
-            onSelect={onOpenNote}
+            onSelect={handleSelect}
+            getSourceEntry={getSourceEntry}
+            onDeleteSource={handleDeleteSource}
           />
         ))}
       </div>

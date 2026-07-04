@@ -43,6 +43,16 @@ No test framework or test command exists yet.
 - **shadcn/ui** — add components with `npx shadcn@latest add <name>` (goes in `src/components/ui/`)
 - `cn()` utility in `src/lib/utils.ts`
 
+## Dependencies
+
+Before installing any new package, ask for approval first. Present:
+
+- What you want to do
+- The package you want to use
+- The features that make it the right choice
+
+Do not proceed with `npm install` until the user confirms.
+
 ## Gotchas
 
 - Forge Vite plugin loads configs via `require` — ESM-only Vite plugins (e.g., `@tailwindcss/vite`) will break. Use PostCSS plugin `@tailwindcss/postcss` instead.

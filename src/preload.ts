@@ -20,4 +20,14 @@ contextBridge.exposeInMainWorld("electron", {
       ipcRenderer.invoke("notes:rename", oldPath, newBaseName),
     delete: (filePath: string) => ipcRenderer.invoke("notes:delete", filePath),
   },
+  sources: {
+    list: (workspacePath: string) =>
+      ipcRenderer.invoke("sources:list", workspacePath),
+    addPdf: (workspacePath: string) =>
+      ipcRenderer.invoke("sources:add-pdf", workspacePath),
+    remove: (workspacePath: string, fileName: string) =>
+      ipcRenderer.invoke("sources:remove", workspacePath, fileName),
+    open: (filePath: string) =>
+      ipcRenderer.invoke("sources:open", filePath),
+  },
 });

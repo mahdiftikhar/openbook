@@ -7,6 +7,15 @@ interface FileNode {
   children?: FileNode[];
 }
 
+interface SourceEntry {
+  fileName: string;
+  fileType: "pdf";
+  status: "ready" | "error";
+  addedAt: string;
+  totalPages: number;
+  error?: string;
+}
+
 interface Window {
   electron: {
     platform: string;
@@ -23,6 +32,12 @@ interface Window {
       write: (filePath: string, content: string) => Promise<boolean>;
       rename: (oldPath: string, newBaseName: string) => Promise<string | null>;
       delete: (filePath: string) => Promise<boolean>;
+    };
+    sources: {
+      list: (workspacePath: string) => Promise<SourceEntry[]>;
+      addPdf: (workspacePath: string) => Promise<SourceEntry | null>;
+      remove: (workspacePath: string, fileName: string) => Promise<boolean>;
+      open: (filePath: string) => Promise<void>;
     };
   };
 }

@@ -2,7 +2,7 @@ import { app, BrowserWindow, dialog, ipcMain } from "electron";
 import path from "node:path";
 import fs from "node:fs";
 
-const REQUIRED_DIRS = ["notes", "sources", ".opencode"];
+const REQUIRED_DIRS = ["notes", "sources", ".openbook"];
 const NOTES_DIR = "notes";
 
 interface FileNode {
