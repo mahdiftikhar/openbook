@@ -26,16 +26,16 @@
  * ```
  */
 
-import './index.css';
+import "./index.css";
 
-import { createElement } from 'react';
-import { createRoot } from 'react-dom/client';
+import { createElement } from "react";
+import { createRoot } from "react-dom/client";
 
-import { App } from '@/App';
+import { App } from "@/App";
 
-const rootElement = document.getElementById('root');
+const rootElement = document.getElementById("root");
 if (rootElement) {
   createRoot(rootElement).render(createElement(App));
 } else {
-  console.error('Root element #root not found');
+  console.error("Root element #root not found");
 }

@@ -50,6 +50,7 @@ Define success criteria. Loop until verified.
 - "Refactor X" → ensure tests pass before and after.
 
 For multi-step tasks, state a brief plan:
+
 ```
 1. [Step] → verify: [check]
 2. [Step] → verify: [check]

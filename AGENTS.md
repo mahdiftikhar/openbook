@@ -17,12 +17,12 @@ Electron + React + TypeScript desktop app (note-taking / research assistant with
 
 ## Commands
 
-| Command | Action |
-|---------|--------|
-| `npm start` | Launch dev mode (electron-forge) |
-| `npm run lint` | ESLint on `.ts,.tsx` files |
-| `npm run package` | Package for distribution |
-| `npm run make` | Generate platform installers |
+| Command           | Action                           |
+| ----------------- | -------------------------------- |
+| `npm start`       | Launch dev mode (electron-forge) |
+| `npm run lint`    | ESLint on `.ts,.tsx` files       |
+| `npm run package` | Package for distribution         |
+| `npm run make`    | Generate platform installers     |
 
 No test framework or test command exists yet.
 

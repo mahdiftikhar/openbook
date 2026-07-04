@@ -34,9 +34,9 @@ npm start
 
 ## Scripts
 
-| Command | Description |
-|---------|-------------|
-| `npm start` | Launch the app in development mode |
-| `npm run package` | Package the app for distribution |
-| `npm run make` | Generate platform-specific installers |
-| `npm run lint` | Run ESLint on source files |
+| Command           | Description                           |
+| ----------------- | ------------------------------------- |
+| `npm start`       | Launch the app in development mode    |
+| `npm run package` | Package the app for distribution      |
+| `npm run make`    | Generate platform-specific installers |
+| `npm run lint`    | Run ESLint on source files            |
