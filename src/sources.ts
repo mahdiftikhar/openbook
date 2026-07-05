@@ -31,7 +31,7 @@ function getIndexFilePath(workspacePath: string): string {
     );
 }
 
-function getTextSidecarPath(workspacePath: string, fileName: string): string {
+export function getTextSidecarPath(workspacePath: string, fileName: string): string {
     return path.join(
         workspacePath,
         WORKSPACE_DIRS.metadata,

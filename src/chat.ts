@@ -6,6 +6,7 @@ import { streamText } from "ai";
 import { extractText, getDocumentProxy } from "unpdf";
 
 import { WORKSPACE_DIRS } from "./workspaceLayout";
+import { getTextSidecarPath } from "./sources";
 
 const MAX_CHUNKS = 6;
 const MAX_CHUNK_CHARS = 1200;
@@ -71,15 +72,6 @@ const activeAbortControllers = new Map<string, AbortController>();
 
 function getSourcePath(workspacePath: string, fileName: string): string {
     return path.join(workspacePath, WORKSPACE_DIRS.sources, fileName);
-}
-
-function getTextSidecarPath(workspacePath: string, fileName: string): string {
-    return path.join(
-        workspacePath,
-        WORKSPACE_DIRS.metadata,
-        WORKSPACE_DIRS.text,
-        fileName.replace(/\.pdf$/i, ".txt"),
-    );
 }
 
 function getPageTextSidecarPath(workspacePath: string, fileName: string): string {
