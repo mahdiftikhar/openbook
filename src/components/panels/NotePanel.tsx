@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import { FileText, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -97,14 +97,7 @@ export function NotePanel({
     };
 
     if (!notePath) {
-        return (
-            <section className="flex h-full flex-col items-center justify-center bg-background text-muted-foreground">
-                <FileText className="size-8 opacity-40" />
-                <p className="mt-3 text-sm">
-                    Select a note or create a new one.
-                </p>
-            </section>
-        );
+        return <EmptyNoteState />;
     }
 
     const fileName = notePath.split(/[/\\]/).pop() ?? notePath;
@@ -117,48 +110,110 @@ export function NotePanel({
 
     return (
         <section className="flex h-full flex-col bg-background">
-            <div className="flex items-center justify-between border-b px-4 py-2.5">
-                <div className="flex min-w-0 flex-col">
-                    <span className="truncate text-sm font-medium">
-                        {fileName}
-                    </span>
-                    <span className="truncate text-xs text-muted-foreground">
-                        {relativeDir}
-                    </span>
-                </div>
-                <div className="flex items-center gap-1">
-                    <span className="mr-1 text-xs text-muted-foreground">
-                        {saving ? "Saving..." : dirty ? "Unsaved" : "Saved"}
-                    </span>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-7"
-                        aria-label="Delete note"
-                        onClick={handleDelete}
-                    >
-                        <Trash2 className="size-4" />
-                    </Button>
-                </div>
-            </div>
-
-            {loaded ? (
-                <textarea
-                    ref={editorRef}
-                    value={content}
-                    onChange={(e) => {
-                        setContent(e.target.value);
-                        setDirty(true);
-                    }}
-                    onBlur={handleBlurSave}
-                    className="min-h-0 flex-1 resize-none bg-transparent px-4 pb-4 font-mono text-sm leading-relaxed outline-none placeholder:text-muted-foreground"
-                    placeholder="Start writing..."
-                />
-            ) : (
-                <div className="flex flex-1 items-center justify-center text-xs text-muted-foreground">
-                    Loading...
-                </div>
-            )}
+            <NoteHeader
+                fileName={fileName}
+                relativeDir={relativeDir}
+                saving={saving}
+                dirty={dirty}
+                onDelete={handleDelete}
+            />
+            <NoteEditor
+                editorRef={editorRef}
+                loaded={loaded}
+                content={content}
+                onContentChange={(value) => {
+                    setContent(value);
+                    setDirty(true);
+                }}
+                onBlurSave={handleBlurSave}
+            />
         </section>
+    );
+}
+
+function EmptyNoteState() {
+    return (
+        <section className="flex h-full flex-col items-center justify-center bg-background text-muted-foreground">
+            <FileText className="size-8 opacity-40" />
+            <p className="mt-3 text-sm">Select a note or create a new one.</p>
+        </section>
+    );
+}
+
+function NoteHeader({
+    fileName,
+    relativeDir,
+    saving,
+    dirty,
+    onDelete,
+}: {
+    fileName: string;
+    relativeDir: string;
+    saving: boolean;
+    dirty: boolean;
+    onDelete: () => void;
+}) {
+    return (
+        <div className="flex items-center justify-between border-b px-4 py-2.5">
+            <div className="flex min-w-0 flex-col">
+                <span className="truncate text-sm font-medium">{fileName}</span>
+                <span className="truncate text-xs text-muted-foreground">
+                    {relativeDir}
+                </span>
+            </div>
+            <div className="flex items-center gap-1">
+                <SaveStatus saving={saving} dirty={dirty} />
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-7"
+                    aria-label="Delete note"
+                    onClick={onDelete}
+                >
+                    <Trash2 className="size-4" />
+                </Button>
+            </div>
+        </div>
+    );
+}
+
+function SaveStatus({ saving, dirty }: { saving: boolean; dirty: boolean }) {
+    return (
+        <span className="mr-1 text-xs text-muted-foreground">
+            {saving ? "Saving..." : dirty ? "Unsaved" : "Saved"}
+        </span>
+    );
+}
+
+function NoteEditor({
+    editorRef,
+    loaded,
+    content,
+    onContentChange,
+    onBlurSave,
+}: {
+    editorRef: RefObject<HTMLTextAreaElement>;
+    loaded: boolean;
+    content: string;
+    onContentChange: (value: string) => void;
+    onBlurSave: () => void;
+}) {
+    if (!loaded) {
+        return (
+            <div className="flex flex-1 items-center justify-center text-xs text-muted-foreground">
+                Loading...
+            </div>
+        );
+    }
+
+    return (
+        <textarea
+            ref={editorRef}
+            value={content}
+            onChange={(e) => onContentChange(e.target.value)}
+            onBlur={onBlurSave}
+            className="min-h-0 flex-1 resize-none bg-transparent px-4 pb-4 font-mono text-sm leading-relaxed outline-none placeholder:text-muted-foreground"
+            placeholder="Start writing..."
+        />
     );
 }

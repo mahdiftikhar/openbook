@@ -13,6 +13,7 @@
 
 ### File Management
 
+- [ ] Explorer panel search input does not filter files yet.
 - [ ] No rename file feature — filename is only changed on first autosave of an untitled note.
 - [ ] No context menu on notes in the sidebar (right-click for delete/rename/copy-path).
 - [ ] Delete button should not be in the note panel header — move delete behind the sidebar context menu.
