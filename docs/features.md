@@ -1,5 +1,23 @@
 # openbook Features
 
+## Current Progress Snapshot
+
+The app is currently in **v0.1.0 foundation work**.
+
+| Area             | Status         | Notes                                                                                                                                                                |
+| ---------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Workspace        | Mostly done    | Create/open workspace, create required structure, persist last path, switch/close project.                                                                           |
+| Notes            | Mostly done    | Create, open, edit, autosave, rename from first line, delete, and list notes.                                                                                        |
+| Sources          | Partial        | PDF import copies files, extracts text sidecars, stores source metadata, lists/removes sources, and shows ready/error status.                                        |
+| PDF viewing      | Partial        | In-app PDF viewer supports page navigation and zoom.                                                                                                                 |
+| Web articles     | Missing        | No URL ingestion, fetch, markdown conversion, or indexing yet.                                                                                                       |
+| YouTube          | Missing        | No transcript ingestion yet.                                                                                                                                         |
+| Indexing/RAG     | Missing        | Extracted text exists for PDFs, but there is no retrieval index, embeddings, or RAG pipeline yet.                                                                    |
+| Chat             | Mock only      | Chat UI exists with static/local messages only; no LLM, streaming, citations, or source selection.                                                                   |
+| File watcher     | Missing        | No workspace filesystem watcher, re-indexing on external changes, or renderer notifications yet.                                                                     |
+| Settings         | Mostly missing | Workspace switching exists, but no settings UI for LLM provider, API keys, model, or embeddings.                                                                     |
+| v0.2.0+ features | Missing        | Persistent chats, chat management, markdown preview/highlighting, source enrichment, agent tools, tagging, search, backlinks, and templates are not implemented yet. |
+
 ## Version History
 
 | Version | Status  |
