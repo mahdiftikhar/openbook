@@ -38,6 +38,7 @@ interface Window {
       addPdf: (workspacePath: string) => Promise<SourceEntry | null>;
       remove: (workspacePath: string, fileName: string) => Promise<boolean>;
       open: (filePath: string) => Promise<void>;
+      readFile: (filePath: string) => Promise<ArrayBuffer | null>;
     };
   };
 }

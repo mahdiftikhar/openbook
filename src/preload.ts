@@ -29,5 +29,7 @@ contextBridge.exposeInMainWorld("electron", {
       ipcRenderer.invoke("sources:remove", workspacePath, fileName),
     open: (filePath: string) =>
       ipcRenderer.invoke("sources:open", filePath),
+    readFile: (filePath: string) =>
+      ipcRenderer.invoke("sources:read-file", filePath),
   },
 });

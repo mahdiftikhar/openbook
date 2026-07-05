@@ -43,6 +43,12 @@ No test framework or test command exists yet.
 - **shadcn/ui** — add components with `npx shadcn@latest add <name>` (goes in `src/components/ui/`)
 - `cn()` utility in `src/lib/utils.ts`
 
+## React UI Structure
+
+- For UI-heavy components that do not own major state management, prefer smaller named presentational pieces over one long JSX block.
+- Keep stateful container logic in the parent, and extract readable UI pieces such as `NextPageButton`, `ZoomControls`, or `PanelHeader` when the name makes the JSX easier to scan.
+- Do not over-extract tiny markup when a name adds no meaning.
+
 ## Dependencies
 
 Before installing any new package, ask for approval first. Present:

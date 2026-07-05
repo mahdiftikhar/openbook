@@ -20,3 +20,10 @@
 ### Multi-document
 
 - [ ] No tab support — only one note open at a time.
+
+### PDF Viewer
+
+- [ ] PDF viewer is page-by-page only — add continuous scrolling.
+- [ ] PDF viewer does not support text selection.
+- [ ] PDF viewer does not support text highlighting/annotations.
+- [ ] PDF viewer needs an "Open in native app" fallback, likely in a right-click/context menu.

@@ -4,6 +4,7 @@ import { Group, Panel, Separator, usePanelRef } from "react-resizable-panels";
 import { TopBar } from "@/components/layout/TopBar";
 import { FilePanel } from "@/components/panels/FilePanel";
 import { NotePanel } from "@/components/panels/NotePanel";
+import { PdfViewer } from "@/components/panels/PdfViewer";
 import { ChatPanel } from "@/components/panels/ChatPanel";
 import { Onboarding } from "@/components/Onboarding";
 
@@ -65,6 +66,7 @@ export function App() {
   };
 
   const workspaceName = workspacePath.split(/[/\\]/).pop() || workspacePath;
+  const isPdf = activeNotePath?.endsWith(".pdf");
 
   return (
     <div className="flex h-screen w-screen flex-col overflow-hidden bg-background text-foreground">
@@ -104,12 +106,19 @@ export function App() {
           <ResizeHandle />
 
           <Panel minSize="30%" style={{ overflow: "hidden" }}>
-            <NotePanel
-              workspacePath={workspacePath}
-              notePath={activeNotePath}
-              onChangeNotePath={setActiveNotePath}
-              onNotesChanged={() => setNotesVersion((v) => v + 1)}
-            />
+            {isPdf && activeNotePath ? (
+              <PdfViewer
+                filePath={activeNotePath}
+                onClose={() => setActiveNotePath(null)}
+              />
+            ) : (
+              <NotePanel
+                workspacePath={workspacePath}
+                notePath={activeNotePath}
+                onChangeNotePath={setActiveNotePath}
+                onNotesChanged={() => setNotesVersion((v) => v + 1)}
+              />
+            )}
           </Panel>
 
           <ResizeHandle />

@@ -2,6 +2,7 @@ import { dialog, ipcMain, shell } from "electron";
 import path from "node:path";
 import fs from "node:fs";
 import { extractText, getDocumentProxy } from "unpdf";
+import { WORKSPACE_DIRS, WORKSPACE_FILES } from "./workspaceLayout";
 
 // Storage layout under workspace/:
 //   WORKSPACE_DIRS.sources/<fileName>.pdf
@@ -140,6 +141,18 @@ export function registerSourcesHandlers(): void {
   ipcMain.handle("sources:list", (_event, workspacePath: string) => {
     return Object.values(readIndex(workspacePath));
   });
+
+  ipcMain.handle(
+    "sources:read-file",
+    async (_event, filePath: string) => {
+      try {
+        const buf = fs.readFileSync(filePath);
+        return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+      } catch {
+        return null;
+      }
+    },
+  );
 
   ipcMain.handle(
     "sources:open",

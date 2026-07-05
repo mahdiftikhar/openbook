@@ -99,23 +99,12 @@ function TreeItem({
   if (node.type === "folder") {
     return (
       <div>
-        <button
-          onClick={() => setOpen((v) => !v)}
-          className="flex w-full items-center gap-1 rounded px-1.5 py-1 text-left text-sm hover:bg-accent"
-          style={{ paddingLeft: depth * 12 + 4 }}
-        >
-          {open ? (
-            <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
-          ) : (
-            <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
-          )}
-          {open ? (
-            <FolderOpen className="size-4 shrink-0 text-muted-foreground" />
-          ) : (
-            <Folder className="size-4 shrink-0 text-muted-foreground" />
-          )}
-          <span className="truncate">{node.name}</span>
-        </button>
+        <FolderRow
+          name={node.name}
+          depth={depth}
+          open={open}
+          onToggle={() => setOpen((v) => !v)}
+        />
         {open &&
           node.children?.map((child) => (
             <TreeItem
@@ -144,20 +133,12 @@ function TreeItem({
         isActive && "bg-accent font-medium",
       )}
     >
-      <button
-        onClick={() => onSelect(node.path)}
-        className="flex min-w-0 flex-1 items-center gap-1.5 truncate text-left text-sm"
-        style={{ paddingLeft: depth * 12 + 14 }}
-      >
-        {isSource ? (
-          <FileText className="size-3.5 shrink-0 text-muted-foreground" />
-        ) : node.name.endsWith(".md") ? (
-          <Hash className="size-3.5 shrink-0 text-muted-foreground" />
-        ) : (
-          <FileIcon className="size-3.5 shrink-0 text-muted-foreground" />
-        )}
-        <span className="truncate">{node.name}</span>
-      </button>
+      <FileRowButton
+        name={node.name}
+        depth={depth}
+        isSource={isSource}
+        onSelect={() => onSelect(node.path)}
+      />
       {isSource && sourceEntry.status === "ready" && (
         <Check className="size-3 shrink-0 text-green-500" />
       )}
@@ -220,22 +201,11 @@ export function FilePanel({
     [sourceMap],
   );
 
-  const isInSources = useCallback((filePath: string) => {
-    const parts = filePath.split(/[/\\]/).filter(Boolean);
-    return (
-      parts.length >= 2 && parts[parts.length - 2] === "sources"
-    );
-  }, []);
-
   const handleSelect = useCallback(
     (filePath: string) => {
-      if (isInSources(filePath)) {
-        window.electron.sources.open(filePath);
-      } else {
-        onOpenNote(filePath);
-      }
+      onOpenNote(filePath);
     },
-    [isInSources, onOpenNote],
+    [onOpenNote],
   );
 
   const handleNew = async () => {
