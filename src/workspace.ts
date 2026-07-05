@@ -1,9 +1,7 @@
 import { app, BrowserWindow, dialog, ipcMain } from "electron";
 import path from "node:path";
 import fs from "node:fs";
-
-const REQUIRED_DIRS = ["notes", "sources", ".openbook"];
-const NOTES_DIR = "notes";
+import { REQUIRED_WORKSPACE_DIRS, WORKSPACE_DIRS } from "./workspaceLayout";
 
 interface FileNode {
   name: string;
@@ -29,7 +27,7 @@ function writeConfig(config: { workspacePath?: string }): void {
 }
 
 function validateProject(projectPath: string): boolean {
-  return REQUIRED_DIRS.every((dir) => {
+  return REQUIRED_WORKSPACE_DIRS.every((dir) => {
     try {
       return fs.statSync(path.join(projectPath, dir)).isDirectory();
     } catch {
@@ -39,7 +37,7 @@ function validateProject(projectPath: string): boolean {
 }
 
 function createProjectStructure(projectPath: string): void {
-  for (const dir of REQUIRED_DIRS) {
+  for (const dir of REQUIRED_WORKSPACE_DIRS) {
     fs.mkdirSync(path.join(projectPath, dir), { recursive: true });
   }
 }
@@ -126,7 +124,7 @@ export function registerWorkspaceHandlers(): void {
         title: "Invalid project",
         message:
           "The selected folder does not follow the openbook project structure.",
-        detail: `A valid project must contain:\n${REQUIRED_DIRS.map((d) => `  ${d}/`).join("\n")}`,
+        detail: `A valid project must contain:\n${REQUIRED_WORKSPACE_DIRS.map((d) => `  ${d}/`).join("\n")}`,
       });
       return null;
     }
@@ -157,7 +155,7 @@ export function registerWorkspaceHandlers(): void {
   });
 
   ipcMain.handle("notes:create", (_event, workspacePath: string) => {
-    const notesDir = path.join(workspacePath, NOTES_DIR);
+    const notesDir = path.join(workspacePath, WORKSPACE_DIRS.notes);
     fs.mkdirSync(notesDir, { recursive: true });
 
     const now = new Date();

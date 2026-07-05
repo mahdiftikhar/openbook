@@ -18,6 +18,67 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+function FolderRow({
+  name,
+  depth,
+  open,
+  onToggle,
+}: {
+  name: string;
+  depth: number;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      onClick={onToggle}
+      className="flex w-full items-center gap-1 rounded px-1.5 py-1 text-left text-sm hover:bg-accent"
+      style={{ paddingLeft: depth * 12 + 4 }}
+    >
+      {open ? (
+        <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
+      ) : (
+        <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
+      )}
+      {open ? (
+        <FolderOpen className="size-4 shrink-0 text-muted-foreground" />
+      ) : (
+        <Folder className="size-4 shrink-0 text-muted-foreground" />
+      )}
+      <span className="truncate">{name}</span>
+    </button>
+  );
+}
+
+function FileRowButton({
+  name,
+  depth,
+  isSource,
+  onSelect,
+}: {
+  name: string;
+  depth: number;
+  isSource: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      onClick={onSelect}
+      className="flex min-w-0 flex-1 items-center gap-1.5 truncate text-left text-sm"
+      style={{ paddingLeft: depth * 12 + 14 }}
+    >
+      {isSource ? (
+        <FileText className="size-3.5 shrink-0 text-muted-foreground" />
+      ) : name.endsWith(".md") ? (
+        <Hash className="size-3.5 shrink-0 text-muted-foreground" />
+      ) : (
+        <FileIcon className="size-3.5 shrink-0 text-muted-foreground" />
+      )}
+      <span className="truncate">{name}</span>
+    </button>
+  );
+}
+
 function TreeItem({
   node,
   depth,
