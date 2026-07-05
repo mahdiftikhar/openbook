@@ -9,9 +9,9 @@ Electron + React + TypeScript desktop app (note-taking / research assistant with
 ## Architecture
 
 - **Three Vite build targets** (defined in `forge.config.ts`):
-  - `main` — Electron main process (`src/main.ts`)
-  - `preload` — preload script (`src/preload.ts`)
-  - `renderer` — UI (`index.html` -> `src/renderer.tsx`)
+    - `main` — Electron main process (`src/main.ts`)
+    - `preload` — preload script (`src/preload.ts`)
+    - `renderer` — UI (`index.html` -> `src/renderer.tsx`)
 - Each target has its own Vite config: `vite.main.config.ts`, `vite.preload.config.ts`, `vite.renderer.config.ts`
 - Renderer entry: `index.html` (root) imports `src/renderer.ts` which imports `src/index.css`
 

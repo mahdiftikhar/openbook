@@ -35,7 +35,7 @@ import { App } from "@/App";
 
 const rootElement = document.getElementById("root");
 if (rootElement) {
-  createRoot(rootElement).render(createElement(App));
+    createRoot(rootElement).render(createElement(App));
 } else {
-  console.error("Root element #root not found");
+    console.error("Root element #root not found");
 }

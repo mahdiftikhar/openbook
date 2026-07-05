@@ -439,22 +439,22 @@ The preload becomes a typed contract exposing only what the renderer needs:
 
 ```ts
 window.api = {
-  // Notes
-  listNotes: () => ipcRenderer.invoke("notes:list"),
-  getNote: (id: string) => ipcRenderer.invoke("notes:get", id),
-  saveNote: (note: NoteDraft) => ipcRenderer.invoke("notes:save", note),
-  deleteNote: (id: string) => ipcRenderer.invoke("notes:delete", id),
+    // Notes
+    listNotes: () => ipcRenderer.invoke("notes:list"),
+    getNote: (id: string) => ipcRenderer.invoke("notes:get", id),
+    saveNote: (note: NoteDraft) => ipcRenderer.invoke("notes:save", note),
+    deleteNote: (id: string) => ipcRenderer.invoke("notes:delete", id),
 
-  // Chat
-  sendMessage: (text: string) => ipcRenderer.invoke("chat:send", text),
-  onToken: (callback: (token: string) => void) =>
-    ipcRenderer.on("chat:token", callback),
-  onChatDone: (callback: (result: ChatResult) => void) =>
-    ipcRenderer.on("chat:done", callback),
+    // Chat
+    sendMessage: (text: string) => ipcRenderer.invoke("chat:send", text),
+    onToken: (callback: (token: string) => void) =>
+        ipcRenderer.on("chat:token", callback),
+    onChatDone: (callback: (result: ChatResult) => void) =>
+        ipcRenderer.on("chat:done", callback),
 
-  // Files
-  onFileChanged: (callback: (path: string) => void) =>
-    ipcRenderer.on("files:changed", callback),
+    // Files
+    onFileChanged: (callback: (path: string) => void) =>
+        ipcRenderer.on("files:changed", callback),
 };
 ```
 
