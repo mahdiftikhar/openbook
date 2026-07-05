@@ -7,10 +7,16 @@ import { WORKSPACE_DIRS, WORKSPACE_FILES } from "./workspaceLayout";
 // Storage layout under workspace/:
 //   WORKSPACE_DIRS.sources/<fileName>.pdf
 //   WORKSPACE_DIRS.metadata/WORKSPACE_DIRS.text/<fileName>.txt
+//   WORKSPACE_DIRS.metadata/WORKSPACE_DIRS.text/<fileName>.pages.json
 //   WORKSPACE_DIRS.metadata/WORKSPACE_FILES.sourcesIndex
 
 interface SourcesIndex {
     [fileName: string]: SourceEntry;
+}
+
+interface SourceTextPage {
+    page: number;
+    text: string;
 }
 
 function getSourcesDir(workspacePath: string): string {
@@ -31,6 +37,15 @@ function getTextSidecarPath(workspacePath: string, fileName: string): string {
         WORKSPACE_DIRS.metadata,
         WORKSPACE_DIRS.text,
         fileName.replace(/\.pdf$/i, ".txt"),
+    );
+}
+
+function getPageTextSidecarPath(workspacePath: string, fileName: string): string {
+    return path.join(
+        workspacePath,
+        WORKSPACE_DIRS.metadata,
+        WORKSPACE_DIRS.text,
+        fileName.replace(/\.pdf$/i, ".pages.json"),
     );
 }
 
@@ -88,17 +103,30 @@ async function addPdfSource(
 
     let totalPages = 0;
     let textContent = "";
+    let pages: SourceTextPage[] = [];
     let extractionError: string | undefined;
 
     try {
         const buffer = fs.readFileSync(destPath);
         const pdf = await getDocumentProxy(new Uint8Array(buffer));
-        const extracted = await extractText(pdf, { mergePages: true });
+        const extracted = await extractText(pdf, { mergePages: false });
         totalPages = extracted.totalPages;
-        textContent = extracted.text;
+        const pageTexts = Array.isArray(extracted.text)
+            ? extracted.text
+            : [extracted.text];
+        pages = pageTexts.map((text, index) => ({
+            page: index + 1,
+            text,
+        }));
+        textContent = pageTexts.join("\n\n");
         const sidecarPath = getTextSidecarPath(workspacePath, fileName);
         fs.mkdirSync(path.dirname(sidecarPath), { recursive: true });
         fs.writeFileSync(sidecarPath, textContent, "utf-8");
+        fs.writeFileSync(
+            getPageTextSidecarPath(workspacePath, fileName),
+            JSON.stringify(pages, null, 2),
+            "utf-8",
+        );
     } catch (err) {
         extractionError = err instanceof Error ? err.message : String(err);
     }
@@ -126,7 +154,8 @@ function removeSource(workspacePath: string, fileName: string): boolean {
     const sourcesDir = getSourcesDir(workspacePath);
     const pdfPath = path.join(sourcesDir, fileName);
     const txtPath = getTextSidecarPath(workspacePath, fileName);
-    for (const p of [pdfPath, txtPath]) {
+    const pagesPath = getPageTextSidecarPath(workspacePath, fileName);
+    for (const p of [pdfPath, txtPath, pagesPath]) {
         try {
             fs.rmSync(p);
         } catch {

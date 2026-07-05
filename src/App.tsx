@@ -26,6 +26,7 @@ export function App() {
     const [workspacePath, setWorkspacePath] = useState<string | null>(null);
     const [checkingWorkspace, setCheckingWorkspace] = useState(true);
     const [activeNotePath, setActiveNotePath] = useState<string | null>(null);
+    const [activePdfPage, setActivePdfPage] = useState<number | null>(null);
     const [notesVersion, setNotesVersion] = useState(0);
 
     useEffect(() => {
@@ -63,6 +64,18 @@ export function App() {
     const handleCloseWorkspace = async () => {
         await window.electron.workspace.clear();
         setWorkspacePath(null);
+        setActiveNotePath(null);
+        setActivePdfPage(null);
+    };
+
+    const handleOpenFile = (filePath: string | null) => {
+        setActivePdfPage(null);
+        setActiveNotePath(filePath);
+    };
+
+    const handleOpenCitation = (citation: ChatCitation) => {
+        setActivePdfPage(citation.page);
+        setActiveNotePath(citation.filePath);
     };
 
     const workspaceName = workspacePath.split(/[/\\]/).pop() || workspacePath;
@@ -100,7 +113,7 @@ export function App() {
                             workspaceName={workspaceName}
                             activeNotePath={activeNotePath}
                             refreshKey={notesVersion}
-                            onOpenNote={setActiveNotePath}
+                            onOpenNote={handleOpenFile}
                             onNotesChanged={() => setNotesVersion((v) => v + 1)}
                         />
                     </Panel>
@@ -111,13 +124,14 @@ export function App() {
                         {isPdf && activeNotePath ? (
                             <PdfViewer
                                 filePath={activeNotePath}
-                                onClose={() => setActiveNotePath(null)}
+                                targetPage={activePdfPage}
+                                onClose={() => handleOpenFile(null)}
                             />
                         ) : (
                             <NotePanel
                                 workspacePath={workspacePath}
                                 notePath={activeNotePath}
-                                onChangeNotePath={setActiveNotePath}
+                                onChangeNotePath={handleOpenFile}
                                 onNotesChanged={() =>
                                     setNotesVersion((v) => v + 1)
                                 }
@@ -139,7 +153,11 @@ export function App() {
                         }
                         style={{ overflow: "hidden" }}
                     >
-                        <ChatPanel />
+                        <ChatPanel
+                            workspacePath={workspacePath}
+                            sourcesRefreshKey={notesVersion}
+                            onOpenCitation={handleOpenCitation}
+                        />
                     </Panel>
                 </Group>
             </div>

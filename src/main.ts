@@ -2,8 +2,10 @@ import { app, BrowserWindow } from "electron";
 import path from "node:path";
 import started from "electron-squirrel-startup";
 
+import { loadEnvFiles } from "./env";
 import { registerWorkspaceHandlers } from "./workspace";
 import { registerSourcesHandlers } from "./sources";
+import { registerChatHandlers } from "./chat";
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -41,8 +43,10 @@ const createWindow = () => {
     }
 };
 
+loadEnvFiles();
 registerWorkspaceHandlers();
 registerSourcesHandlers();
+registerChatHandlers();
 
 app.on("ready", createWindow);
 

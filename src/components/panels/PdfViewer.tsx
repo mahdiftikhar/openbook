@@ -9,9 +9,11 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
 export function PdfViewer({
     filePath,
+    targetPage,
     onClose,
 }: {
     filePath: string;
+    targetPage: number | null;
     onClose: () => void;
 }) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -66,6 +68,11 @@ export function PdfViewer({
             renderTaskRef.current?.cancel();
         };
     }, [filePath]);
+
+    useEffect(() => {
+        if (!targetPage || numPages === 0) return;
+        setCurrentPage(Math.max(1, Math.min(numPages, targetPage)));
+    }, [targetPage, numPages]);
 
     // Render the selected PDF page onto the canvas.
     useEffect(() => {

@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from "electron";
+import { contextBridge, ipcRenderer, type IpcRendererEvent } from "electron";
 
 contextBridge.exposeInMainWorld("electron", {
     platform: process.platform,
@@ -32,5 +32,18 @@ contextBridge.exposeInMainWorld("electron", {
             ipcRenderer.invoke("sources:open", filePath),
         readFile: (filePath: string) =>
             ipcRenderer.invoke("sources:read-file", filePath),
+    },
+    chat: {
+        ask: (request: ChatRequest) => ipcRenderer.send("chat:ask", request),
+        cancel: (requestId: string) =>
+            ipcRenderer.send("chat:cancel", requestId),
+        onStream: (callback: (event: ChatStreamEvent) => void) => {
+            const listener = (
+                _event: IpcRendererEvent,
+                payload: ChatStreamEvent,
+            ) => callback(payload);
+            ipcRenderer.on("chat:stream", listener);
+            return () => ipcRenderer.removeListener("chat:stream", listener);
+        },
     },
 });

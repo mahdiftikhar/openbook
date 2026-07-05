@@ -16,6 +16,49 @@ interface SourceEntry {
     error?: string;
 }
 
+interface ChatHistoryMessage {
+    role: "user" | "assistant";
+    content: string;
+}
+
+interface ChatRequest {
+    requestId: string;
+    workspacePath: string;
+    question: string;
+    sourceFileNames: string[];
+    history: ChatHistoryMessage[];
+}
+
+interface ChatCitation {
+    id: number;
+    fileName: string;
+    filePath: string;
+    page: number;
+    excerpt: string;
+}
+
+type ChatStreamEvent =
+    | {
+          type: "start";
+          requestId: string;
+          citations: ChatCitation[];
+      }
+    | {
+          type: "delta";
+          requestId: string;
+          text: string;
+      }
+    | {
+          type: "done";
+          requestId: string;
+          content: string;
+      }
+    | {
+          type: "error";
+          requestId: string;
+          error: string;
+      };
+
 interface Window {
     electron: {
         platform: string;
@@ -45,6 +88,13 @@ interface Window {
             ) => Promise<boolean>;
             open: (filePath: string) => Promise<void>;
             readFile: (filePath: string) => Promise<ArrayBuffer | null>;
+        };
+        chat: {
+            ask: (request: ChatRequest) => void;
+            cancel: (requestId: string) => void;
+            onStream: (
+                callback: (event: ChatStreamEvent) => void,
+            ) => () => void;
         };
     };
 }
