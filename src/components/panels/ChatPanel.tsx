@@ -11,6 +11,7 @@ import {
     Paperclip,
     Send,
     Sparkles,
+    Square,
     X,
 } from "lucide-react";
 
@@ -199,6 +200,25 @@ export function ChatPanel({
         });
     };
 
+    const handleCancel = () => {
+        const requestId = activeRequestRef.current;
+        const messageId = activeAssistantMessageRef.current;
+        if (!requestId) return;
+        window.electron.chat.cancel(requestId);
+        activeRequestRef.current = null;
+        activeAssistantMessageRef.current = null;
+        setStreaming(false);
+        if (messageId) {
+            setMessages((current) =>
+                current.map((message) =>
+                    message.id === messageId && !message.content
+                        ? { ...message, content: "Response cancelled." }
+                        : message,
+                ),
+            );
+        }
+    };
+
     return (
         <aside className="flex h-full flex-col bg-background">
             <ChatHeader selectedCount={selectedSources.length} />
@@ -213,6 +233,7 @@ export function ChatPanel({
                 selectedSourceNames={selectedSourceNames}
                 selectedSources={selectedSources}
                 streaming={streaming}
+                onCancel={handleCancel}
                 onClearSources={() => setSelectedSourceNames([])}
                 onDraftChange={setDraft}
                 onSend={send}
@@ -363,6 +384,7 @@ function ChatComposer({
     selectedSourceNames,
     selectedSources,
     streaming,
+    onCancel,
     onClearSources,
     onDraftChange,
     onSend,
@@ -373,6 +395,7 @@ function ChatComposer({
     selectedSourceNames: string[];
     selectedSources: SourceEntry[];
     streaming: boolean;
+    onCancel: () => void;
     onClearSources: () => void;
     onDraftChange: (draft: string) => void;
     onSend: () => void;
@@ -405,11 +428,15 @@ function ChatComposer({
                 />
                 <Button
                     size="icon"
-                    aria-label="Send message"
-                    onClick={onSend}
-                    disabled={!canSend || streaming}
+                    aria-label={streaming ? "Stop response" : "Send message"}
+                    onClick={streaming ? onCancel : onSend}
+                    disabled={!streaming && !canSend}
                 >
-                    <Send className="size-4" />
+                    {streaming ? (
+                        <Square className="size-4" />
+                    ) : (
+                        <Send className="size-4" />
+                    )}
                 </Button>
             </div>
         </div>
