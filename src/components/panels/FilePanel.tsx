@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import {
     FilePlus2,
     File as FileIcon,
@@ -13,6 +14,8 @@ import {
     Trash2,
     Check,
     AlertCircle,
+    Pencil,
+    Copy,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -36,6 +39,15 @@ export function FilePanel({
     const [tree, setTree] = useState<FileNode[]>([]);
     const [sourceEntries, setSourceEntries] = useState<SourceEntry[]>([]);
     const [localVersion, setLocalVersion] = useState(0);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [contextMenu, setContextMenu] = useState<{
+        filePath: string;
+        fileName: string;
+        isSource: boolean;
+        x: number;
+        y: number;
+    } | null>(null);
+    const [renamingPath, setRenamingPath] = useState<string | null>(null);
 
     useEffect(() => {
         window.electron.workspace.listFiles(workspacePath).then(setTree);
@@ -84,18 +96,97 @@ export function FilePanel({
         onNotesChanged();
     };
 
+    const handleFileContextMenu = useCallback(
+        (
+            filePath: string,
+            fileName: string,
+            isSource: boolean,
+            x: number,
+            y: number,
+        ) => {
+            setContextMenu({ filePath, fileName, isSource, x, y });
+        },
+        [],
+    );
+
+    const handleCopyPath = useCallback((filePath: string) => {
+        navigator.clipboard.writeText(filePath).catch(() => undefined);
+    }, []);
+
+    const handleCloseContextMenu = useCallback(() => {
+        setContextMenu(null);
+    }, []);
+
+    const handleRenameStart = useCallback(() => {
+        if (!contextMenu) return;
+        setRenamingPath(contextMenu.filePath);
+        setContextMenu(null);
+    }, [contextMenu]);
+
+    const handleRenameSubmit = useCallback(
+        async (filePath: string, newBaseName: string | null) => {
+            setRenamingPath(null);
+            if (newBaseName === null || newBaseName.trim().length === 0)
+                return;
+            const newPath = await window.electron.notes.rename(
+                filePath,
+                newBaseName.trim(),
+            );
+            if (newPath) {
+                if (filePath === activeNotePath) onOpenNote(newPath);
+                onNotesChanged();
+            }
+        },
+        [activeNotePath, onOpenNote, onNotesChanged],
+    );
+
+    const handleDeleteNote = useCallback(
+        async (filePath: string) => {
+            const success = await window.electron.notes.delete(filePath);
+            if (success) {
+                setLocalVersion((v) => v + 1);
+                onNotesChanged();
+            }
+        },
+        [onNotesChanged],
+    );
+
     return (
         <aside className="flex h-full flex-col bg-sidebar">
             <FilePanelHeader onAddPdf={handleAddPdf} onNewNote={handleNew} />
-            <FileSearchInput />
+            <FileSearchInput value={searchQuery} onChange={setSearchQuery} />
             <FileTree
                 workspaceName={workspaceName}
                 tree={tree}
                 activeNotePath={activeNotePath}
                 onSelect={handleSelect}
                 getSourceEntry={getSourceEntry}
-                onDeleteSource={handleDeleteSource}
+                searchQuery={searchQuery}
+                onContextMenu={handleFileContextMenu}
+                renamingPath={renamingPath}
+                onRenameSubmit={handleRenameSubmit}
             />
+            {contextMenu && (
+                <FileContextMenu
+                    x={contextMenu.x}
+                    y={contextMenu.y}
+                    isSource={contextMenu.isSource}
+                    onRename={handleRenameStart}
+                    onCopyPath={() => {
+                        handleCopyPath(contextMenu.filePath);
+                        setContextMenu(null);
+                    }}
+                    onDelete={() => {
+                        if (contextMenu.isSource) {
+                            handleDeleteSource(contextMenu.fileName);
+                        } else {
+                            handleDeleteNote(contextMenu.filePath);
+                        }
+                        setContextMenu(null);
+                    }}
+                    onClose={handleCloseContextMenu}
+                />
+            )}
         </aside>
     );
 }
@@ -167,16 +258,32 @@ function TreeItem({
     selectedPath,
     onSelect,
     getSourceEntry,
-    onDeleteSource,
+    forceExpand,
+    onContextMenu,
+    renamingPath,
+    onRenameSubmit,
 }: {
     node: FileNode;
     depth: number;
     selectedPath: string | null;
     onSelect: (path: string) => void;
     getSourceEntry?: (fileName: string) => SourceEntry | undefined;
-    onDeleteSource?: (fileName: string) => void;
+    forceExpand?: boolean;
+    onContextMenu?: (
+        filePath: string,
+        fileName: string,
+        isSource: boolean,
+        x: number,
+        y: number,
+    ) => void;
+    renamingPath?: string | null;
+    onRenameSubmit?: (filePath: string, newBaseName: string | null) => void;
 }) {
-    const [open, setOpen] = useState(depth === 0);
+    const [open, setOpen] = useState(depth === 0 || forceExpand);
+
+    useEffect(() => {
+        if (forceExpand) setOpen(true);
+    }, [forceExpand]);
 
     if (node.type === "folder") {
         return (
@@ -196,7 +303,10 @@ function TreeItem({
                             selectedPath={selectedPath}
                             onSelect={onSelect}
                             getSourceEntry={getSourceEntry}
-                            onDeleteSource={onDeleteSource}
+                            forceExpand={forceExpand}
+                            onContextMenu={onContextMenu}
+                            renamingPath={renamingPath}
+                            onRenameSubmit={onRenameSubmit}
                         />
                     ))}
             </div>
@@ -207,12 +317,59 @@ function TreeItem({
     const sourceEntry = getSourceEntry?.(node.name);
     const isSource = sourceEntry !== undefined;
 
+    const handleContextMenu = (e: React.MouseEvent) => {
+        e.preventDefault();
+        onContextMenu?.(node.path, node.name, isSource, e.clientX, e.clientY);
+    };
+
+    if (node.path === renamingPath) {
+        const dotIndex = node.name.lastIndexOf(".");
+        const ext = dotIndex >= 0 ? node.name.slice(dotIndex) : "";
+        const baseName = dotIndex >= 0 ? node.name.slice(0, dotIndex) : node.name;
+
+        return (
+            <div
+                className="flex items-center rounded px-1.5 py-1"
+                style={{ paddingLeft: depth * 12 + 14 }}
+            >
+                <input
+                    autoFocus
+                    defaultValue={baseName}
+                    onFocus={(e) => {
+                        const val = e.target.value;
+                        e.target.setSelectionRange(0, val.length);
+                    }}
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                            e.preventDefault();
+                            onRenameSubmit?.(node.path, e.currentTarget.value);
+                        }
+                        if (e.key === "Escape") {
+                            e.preventDefault();
+                            onRenameSubmit?.(node.path, null);
+                        }
+                    }}
+                    onBlur={(e) =>
+                        onRenameSubmit?.(node.path, e.currentTarget.value)
+                    }
+                    className="h-6 w-full rounded border border-input bg-background px-1.5 text-sm outline-none"
+                />
+                {ext && (
+                    <span className="ml-1 shrink-0 text-sm text-muted-foreground">
+                        {ext}
+                    </span>
+                )}
+            </div>
+        );
+    }
+
     return (
         <div
             className={cn(
                 "group flex items-center rounded px-1.5 py-1 hover:bg-accent",
                 isActive && "bg-accent font-medium",
             )}
+            onContextMenu={handleContextMenu}
         >
             <FileRowButton
                 name={node.name}
@@ -228,15 +385,6 @@ function TreeItem({
                     className="size-3 shrink-0 text-destructive"
                     aria-label={sourceEntry.error ?? "Error"}
                 />
-            )}
-            {isSource && onDeleteSource && (
-                <button
-                    onClick={() => onDeleteSource(node.name)}
-                    className="shrink-0 rounded p-0.5 opacity-0 hover:bg-accent-foreground/10 group-hover:opacity-100"
-                    aria-label={`Remove ${node.name}`}
-                >
-                    <Trash2 className="size-3 text-muted-foreground" />
-                </button>
             )}
         </div>
     );
@@ -278,12 +426,20 @@ function FilePanelHeader({
     );
 }
 
-function FileSearchInput() {
+function FileSearchInput({
+    value,
+    onChange,
+}: {
+    value: string;
+    onChange: (q: string) => void;
+}) {
     return (
         <div className="px-3 py-2">
             <div className="flex items-center gap-2 rounded-md border border-input bg-background px-2">
                 <Search className="size-3.5 text-muted-foreground" />
                 <input
+                    value={value}
+                    onChange={(e) => onChange(e.target.value)}
                     placeholder="Search files..."
                     className="h-7 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
                 />
@@ -292,25 +448,122 @@ function FileSearchInput() {
     );
 }
 
+function FileContextMenu({
+    x,
+    y,
+    isSource,
+    onRename,
+    onCopyPath,
+    onDelete,
+    onClose,
+}: {
+    x: number;
+    y: number;
+    isSource: boolean;
+    onRename: () => void;
+    onCopyPath: () => void;
+    onDelete: () => void;
+    onClose: () => void;
+}) {
+    useEffect(() => {
+        const handleClick = () => onClose();
+        const handleEscape = (e: KeyboardEvent) => {
+            if (e.key === "Escape") onClose();
+        };
+        document.addEventListener("click", handleClick);
+        document.addEventListener("keydown", handleEscape);
+        return () => {
+            document.removeEventListener("click", handleClick);
+            document.removeEventListener("keydown", handleEscape);
+        };
+    }, [onClose]);
+
+    return createPortal(
+        <div
+            className="fixed z-50 min-w-36 overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md"
+            style={{ left: x, top: y }}
+        >
+            <button
+                onClick={onRename}
+                disabled={isSource}
+                className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent disabled:opacity-50"
+            >
+                <Pencil className="size-4" />
+                Rename
+            </button>
+            <button
+                onClick={onCopyPath}
+                className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent"
+            >
+                <Copy className="size-4" />
+                Copy Path
+            </button>
+            <button
+                onClick={onDelete}
+                className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-destructive"
+            >
+                <Trash2 className="size-4" />
+                Delete
+            </button>
+        </div>,
+        document.body,
+    );
+}
+
+function filterTree(nodes: FileNode[], query: string): FileNode[] {
+    if (!query) return nodes;
+    const lower = query.toLowerCase();
+    return nodes.reduce<FileNode[]>((acc, node) => {
+        if (node.type === "folder") {
+            const filtered = filterTree(node.children ?? [], query);
+            const nameMatches = node.name.toLowerCase().includes(lower);
+            if (nameMatches || filtered.length > 0) {
+                acc.push({ ...node, children: nameMatches ? node.children : filtered });
+            }
+        } else if (node.name.toLowerCase().includes(lower)) {
+            acc.push(node);
+        }
+        return acc;
+    }, []);
+}
+
 function FileTree({
     workspaceName,
     tree,
     activeNotePath,
     onSelect,
     getSourceEntry,
-    onDeleteSource,
+    searchQuery,
+    onContextMenu,
+    renamingPath,
+    onRenameSubmit,
 }: {
     workspaceName: string;
     tree: FileNode[];
     activeNotePath: string | null;
     onSelect: (path: string) => void;
     getSourceEntry: (fileName: string) => SourceEntry | undefined;
-    onDeleteSource: (fileName: string) => void;
+    searchQuery: string;
+    onContextMenu: (
+        filePath: string,
+        fileName: string,
+        isSource: boolean,
+        x: number,
+        y: number,
+    ) => void;
+    renamingPath: string | null;
+    onRenameSubmit: (filePath: string, newBaseName: string | null) => void;
 }) {
+    const filteredTree = useMemo(
+        () => filterTree(tree, searchQuery),
+        [tree, searchQuery],
+    );
+    const searching = searchQuery.length > 0;
+
     return (
         <div className="flex-1 overflow-y-auto px-2 pb-3">
             <WorkspaceRootLabel workspaceName={workspaceName} />
-            {tree.map((node) => (
+            {filteredTree.map((node) => (
                 <TreeItem
                     key={node.path}
                     node={node}
@@ -318,7 +571,10 @@ function FileTree({
                     selectedPath={activeNotePath}
                     onSelect={onSelect}
                     getSourceEntry={getSourceEntry}
-                    onDeleteSource={onDeleteSource}
+                    forceExpand={searching}
+                    onContextMenu={onContextMenu}
+                    renamingPath={renamingPath}
+                    onRenameSubmit={onRenameSubmit}
                 />
             ))}
         </div>
