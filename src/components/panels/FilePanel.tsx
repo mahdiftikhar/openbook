@@ -23,6 +23,29 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+async function findCopyPath(
+    sourcePath: string,
+    targetDir: string,
+): Promise<string | null> {
+    const sourceName = sourcePath.substring(
+        sourcePath.lastIndexOf("/") + 1,
+    );
+    const dotIndex = sourceName.lastIndexOf(".");
+    const ext = dotIndex >= 0 ? sourceName.slice(dotIndex) : "";
+    const baseName =
+        dotIndex >= 0 ? sourceName.slice(0, dotIndex) : sourceName;
+
+    let newName = `${baseName}_copy${ext}`;
+    let newPath = `${targetDir}/${newName}`;
+    let counter = 2;
+    while ((await window.electron.notes.read(newPath)) !== null) {
+        newName = `${baseName}_copy_${counter}${ext}`;
+        newPath = `${targetDir}/${newName}`;
+        counter++;
+    }
+    return newPath;
+}
+
 export function FilePanel({
     workspacePath,
     workspaceName,
@@ -164,22 +187,8 @@ export function FilePanel({
             const content = await window.electron.notes.read(copiedFilePath);
             if (content === null) return;
 
-            const sourceName = copiedFilePath.substring(
-                copiedFilePath.lastIndexOf("/") + 1,
-            );
-            const dotIndex = sourceName.lastIndexOf(".");
-            const ext = dotIndex >= 0 ? sourceName.slice(dotIndex) : "";
-            const baseName =
-                dotIndex >= 0 ? sourceName.slice(0, dotIndex) : sourceName;
-
-            let newName = `${baseName}_copy${ext}`;
-            let newPath = `${targetDir}/${newName}`;
-            let counter = 2;
-            while ((await window.electron.notes.read(newPath)) !== null) {
-                newName = `${baseName}_copy_${counter}${ext}`;
-                newPath = `${targetDir}/${newName}`;
-                counter++;
-            }
+            const newPath = await findCopyPath(copiedFilePath, targetDir);
+            if (newPath === null) return;
 
             const success = await window.electron.notes.write(
                 newPath,
@@ -199,22 +208,8 @@ export function FilePanel({
             if (content === null) return;
 
             const dir = filePath.substring(0, filePath.lastIndexOf("/"));
-            const fileName = filePath.substring(
-                filePath.lastIndexOf("/") + 1,
-            );
-            const dotIndex = fileName.lastIndexOf(".");
-            const ext = dotIndex >= 0 ? fileName.slice(dotIndex) : "";
-            const baseName =
-                dotIndex >= 0 ? fileName.slice(0, dotIndex) : fileName;
-
-            let newName = `${baseName}_copy${ext}`;
-            let newPath = `${dir}/${newName}`;
-            let counter = 2;
-            while ((await window.electron.notes.read(newPath)) !== null) {
-                newName = `${baseName}_copy_${counter}${ext}`;
-                newPath = `${dir}/${newName}`;
-                counter++;
-            }
+            const newPath = await findCopyPath(filePath, dir);
+            if (newPath === null) return;
 
             const success = await window.electron.notes.write(
                 newPath,
@@ -582,55 +577,67 @@ function FileContextMenu({
 
     return createPortal(
         <div
-            className="fixed z-50 min-w-36 overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md"
+            className="fixed z-50 flex min-w-36 flex-col overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md"
             style={{ left: x, top: y }}
         >
-            <button
+            <Button
+                variant="ghost"
+                size="sm"
+                className="justify-start rounded-sm"
                 onClick={onRename}
                 disabled={isSource}
-                className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent disabled:opacity-50"
             >
                 <Pencil className="size-4" />
                 Rename
-            </button>
-            <button
+            </Button>
+            <Button
+                variant="ghost"
+                size="sm"
+                className="justify-start rounded-sm"
                 onClick={onDuplicate}
                 disabled={isSource}
-                className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent disabled:opacity-50"
             >
                 <Files className="size-4" />
                 Duplicate
-            </button>
-            <button
+            </Button>
+            <Button
+                variant="ghost"
+                size="sm"
+                className="justify-start rounded-sm"
                 onClick={onCopyFile}
                 disabled={isSource}
-                className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent disabled:opacity-50"
             >
                 <Copy className="size-4" />
                 Copy
-            </button>
-            <button
+            </Button>
+            <Button
+                variant="ghost"
+                size="sm"
+                className="justify-start rounded-sm"
                 onClick={onPaste}
                 disabled={isSource || pasteDisabled}
-                className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent disabled:opacity-50"
             >
                 <ClipboardPaste className="size-4" />
                 Paste
-            </button>
-            <button
+            </Button>
+            <Button
+                variant="ghost"
+                size="sm"
+                className="justify-start rounded-sm"
                 onClick={onCopyPath}
-                className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent"
             >
                 <Copy className="size-4" />
                 Copy Path
-            </button>
-            <button
+            </Button>
+            <Button
+                variant="ghost"
+                size="sm"
+                className="justify-start rounded-sm hover:text-destructive"
                 onClick={onDelete}
-                className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-destructive"
             >
                 <Trash2 className="size-4" />
                 Delete
-            </button>
+            </Button>
         </div>,
         document.body,
     );
