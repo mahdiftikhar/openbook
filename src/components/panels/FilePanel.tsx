@@ -16,6 +16,8 @@ import {
     AlertCircle,
     Pencil,
     Copy,
+    Files,
+    ClipboardPaste,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -48,6 +50,7 @@ export function FilePanel({
         y: number;
     } | null>(null);
     const [renamingPath, setRenamingPath] = useState<string | null>(null);
+    const [copiedFilePath, setCopiedFilePath] = useState<string | null>(null);
 
     useEffect(() => {
         window.electron.workspace.listFiles(workspacePath).then(setTree);
@@ -151,6 +154,80 @@ export function FilePanel({
         [onNotesChanged],
     );
 
+    const handleCopyFile = useCallback((filePath: string) => {
+        setCopiedFilePath(filePath);
+    }, []);
+
+    const handlePasteFile = useCallback(
+        async (targetDir: string) => {
+            if (!copiedFilePath) return;
+            const content = await window.electron.notes.read(copiedFilePath);
+            if (content === null) return;
+
+            const sourceName = copiedFilePath.substring(
+                copiedFilePath.lastIndexOf("/") + 1,
+            );
+            const dotIndex = sourceName.lastIndexOf(".");
+            const ext = dotIndex >= 0 ? sourceName.slice(dotIndex) : "";
+            const baseName =
+                dotIndex >= 0 ? sourceName.slice(0, dotIndex) : sourceName;
+
+            let newName = `${baseName}_copy${ext}`;
+            let newPath = `${targetDir}/${newName}`;
+            let counter = 2;
+            while ((await window.electron.notes.read(newPath)) !== null) {
+                newName = `${baseName}_copy_${counter}${ext}`;
+                newPath = `${targetDir}/${newName}`;
+                counter++;
+            }
+
+            const success = await window.electron.notes.write(
+                newPath,
+                content,
+            );
+            if (success) {
+                setLocalVersion((v) => v + 1);
+                onNotesChanged();
+            }
+        },
+        [copiedFilePath, onNotesChanged],
+    );
+
+    const handleDuplicateFile = useCallback(
+        async (filePath: string) => {
+            const content = await window.electron.notes.read(filePath);
+            if (content === null) return;
+
+            const dir = filePath.substring(0, filePath.lastIndexOf("/"));
+            const fileName = filePath.substring(
+                filePath.lastIndexOf("/") + 1,
+            );
+            const dotIndex = fileName.lastIndexOf(".");
+            const ext = dotIndex >= 0 ? fileName.slice(dotIndex) : "";
+            const baseName =
+                dotIndex >= 0 ? fileName.slice(0, dotIndex) : fileName;
+
+            let newName = `${baseName}_copy${ext}`;
+            let newPath = `${dir}/${newName}`;
+            let counter = 2;
+            while ((await window.electron.notes.read(newPath)) !== null) {
+                newName = `${baseName}_copy_${counter}${ext}`;
+                newPath = `${dir}/${newName}`;
+                counter++;
+            }
+
+            const success = await window.electron.notes.write(
+                newPath,
+                content,
+            );
+            if (success) {
+                setLocalVersion((v) => v + 1);
+                onNotesChanged();
+            }
+        },
+        [onNotesChanged],
+    );
+
     return (
         <aside className="flex h-full flex-col bg-sidebar">
             <FilePanelHeader onAddPdf={handleAddPdf} onNewNote={handleNew} />
@@ -171,7 +248,24 @@ export function FilePanel({
                     x={contextMenu.x}
                     y={contextMenu.y}
                     isSource={contextMenu.isSource}
+                    pasteDisabled={!copiedFilePath}
                     onRename={handleRenameStart}
+                    onDuplicate={() => {
+                        handleDuplicateFile(contextMenu.filePath);
+                        setContextMenu(null);
+                    }}
+                    onCopyFile={() => {
+                        handleCopyFile(contextMenu.filePath);
+                        setContextMenu(null);
+                    }}
+                    onPaste={() => {
+                        const dir = contextMenu.filePath.substring(
+                            0,
+                            contextMenu.filePath.lastIndexOf("/"),
+                        );
+                        handlePasteFile(dir);
+                        setContextMenu(null);
+                    }}
                     onCopyPath={() => {
                         handleCopyPath(contextMenu.filePath);
                         setContextMenu(null);
@@ -452,7 +546,11 @@ function FileContextMenu({
     x,
     y,
     isSource,
+    pasteDisabled,
     onRename,
+    onDuplicate,
+    onCopyFile,
+    onPaste,
     onCopyPath,
     onDelete,
     onClose,
@@ -460,7 +558,11 @@ function FileContextMenu({
     x: number;
     y: number;
     isSource: boolean;
+    pasteDisabled: boolean;
     onRename: () => void;
+    onDuplicate: () => void;
+    onCopyFile: () => void;
+    onPaste: () => void;
     onCopyPath: () => void;
     onDelete: () => void;
     onClose: () => void;
@@ -490,6 +592,30 @@ function FileContextMenu({
             >
                 <Pencil className="size-4" />
                 Rename
+            </button>
+            <button
+                onClick={onDuplicate}
+                disabled={isSource}
+                className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent disabled:opacity-50"
+            >
+                <Files className="size-4" />
+                Duplicate
+            </button>
+            <button
+                onClick={onCopyFile}
+                disabled={isSource}
+                className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent disabled:opacity-50"
+            >
+                <Copy className="size-4" />
+                Copy
+            </button>
+            <button
+                onClick={onPaste}
+                disabled={isSource || pasteDisabled}
+                className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent disabled:opacity-50"
+            >
+                <ClipboardPaste className="size-4" />
+                Paste
             </button>
             <button
                 onClick={onCopyPath}
