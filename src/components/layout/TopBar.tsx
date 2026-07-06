@@ -4,7 +4,9 @@ import {
     PanelRightOpen,
     PanelRightClose,
     BookOpen,
+    Check,
     Moon,
+    Palette,
     Sun,
     ChevronDown,
     FolderSync,
@@ -17,27 +19,34 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { THEMES, type ThemeId, type ThemeMode } from "@/themes";
 
 export function TopBar({
     workspaceName,
     filesOpen,
     onToggleFiles,
-    chatOpen,
-    onToggleChat,
-    dark,
-    onToggleDark,
+    notesOpen,
+    onToggleNotes,
+    themeId,
+    themeMode,
+    onThemeChange,
+    onThemeModeChange,
     onSwitchWorkspace,
     onCloseWorkspace,
 }: {
     workspaceName: string;
     filesOpen: boolean;
     onToggleFiles: () => void;
-    chatOpen: boolean;
-    onToggleChat: () => void;
-    dark: boolean;
-    onToggleDark: () => void;
+    notesOpen: boolean;
+    onToggleNotes: () => void;
+    themeId: ThemeId;
+    themeMode: ThemeMode;
+    onThemeChange: (themeId: ThemeId) => void;
+    onThemeModeChange: (themeMode: ThemeMode) => void;
     onSwitchWorkspace: () => void;
     onCloseWorkspace: () => void;
 }) {
@@ -45,7 +54,7 @@ export function TopBar({
     return (
         <header
             className={
-                "drag-region flex items-center gap-2 border-b bg-background py-1 " +
+                "drag-region flex items-center gap-2 border-b bg-surface-topbar py-1 " +
                 (isMac ? "pl-20 pr-3" : "px-3")
             }
         >
@@ -58,8 +67,13 @@ export function TopBar({
             />
 
             <div className="ml-auto flex items-center gap-1">
-                <ThemeToggle dark={dark} onToggle={onToggleDark} />
-                <ChatPanelToggle open={chatOpen} onToggle={onToggleChat} />
+                <ThemeMenu
+                    themeId={themeId}
+                    themeMode={themeMode}
+                    onThemeChange={onThemeChange}
+                    onThemeModeChange={onThemeModeChange}
+                />
+                <NotesPanelToggle open={notesOpen} onToggle={onToggleNotes} />
             </div>
         </header>
     );
@@ -133,27 +147,58 @@ function WorkspaceMenu({
     );
 }
 
-function ThemeToggle({
-    dark,
-    onToggle,
+function ThemeMenu({
+    themeId,
+    themeMode,
+    onThemeChange,
+    onThemeModeChange,
 }: {
-    dark: boolean;
-    onToggle: () => void;
+    themeId: ThemeId;
+    themeMode: ThemeMode;
+    onThemeChange: (themeId: ThemeId) => void;
+    onThemeModeChange: (themeMode: ThemeMode) => void;
 }) {
     return (
-        <Button
-            variant="ghost"
-            size="icon"
-            className="no-drag size-7"
-            aria-label="Toggle dark mode"
-            onClick={onToggle}
-        >
-            {dark ? <Sun className="size-4" /> : <Moon className="size-4" />}
-        </Button>
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="no-drag size-7"
+                    aria-label="Change theme"
+                >
+                    <Palette className="size-4" />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44">
+                <DropdownMenuLabel>Theme</DropdownMenuLabel>
+                {THEMES.map((theme) => (
+                    <DropdownMenuItem
+                        key={theme.id}
+                        onClick={() => onThemeChange(theme.id)}
+                    >
+                        {theme.name}
+                        {theme.id === themeId && <Check className="ml-auto size-4" />}
+                    </DropdownMenuItem>
+                ))}
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Mode</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => onThemeModeChange("light")}>
+                    <Sun className="size-4" />
+                    Light
+                    {themeMode === "light" && <Check className="ml-auto size-4" />}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onThemeModeChange("dark")}>
+                    <Moon className="size-4" />
+                    Dark
+                    {themeMode === "dark" && <Check className="ml-auto size-4" />}
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
     );
 }
 
-function ChatPanelToggle({
+function NotesPanelToggle({
     open,
     onToggle,
 }: {
@@ -165,7 +210,7 @@ function ChatPanelToggle({
             variant="ghost"
             size="icon"
             className="no-drag size-7"
-            aria-label={open ? "Hide chat panel" : "Show chat panel"}
+            aria-label={open ? "Hide notes panel" : "Show notes panel"}
             onClick={onToggle}
         >
             {open ? (

@@ -68,6 +68,7 @@ interface Window {
             createNew: () => Promise<string | null>;
             clear: () => Promise<void>;
             listFiles: (workspacePath: string) => Promise<FileNode[]>;
+            revealFile: (filePath: string) => Promise<void>;
         };
         notes: {
             create: (workspacePath: string) => Promise<string>;
@@ -86,6 +87,11 @@ interface Window {
                 workspacePath: string,
                 fileName: string,
             ) => Promise<boolean>;
+            rename: (
+                workspacePath: string,
+                oldFileName: string,
+                newBaseName: string,
+            ) => Promise<SourceEntry | null>;
             open: (filePath: string) => Promise<void>;
             readFile: (filePath: string) => Promise<ArrayBuffer | null>;
         };

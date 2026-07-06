@@ -197,7 +197,7 @@ These are useful, but they should wait until the core context, chat, retrieval, 
 
 Start with the lowest-risk improvements that also move toward the new direction:
 
-- Fix low-hanging UX issues from `docs/issues.md`.
+- Fix low-hanging UX issues from `docs/task-checklist.md`.
 - Add rendered Markdown for chat output.
 - Replace the chat source dropdown with a context tray or chip-based model.
 - Allow chat prompts to search all ready sources when no explicit source is selected.

@@ -7,6 +7,17 @@ import { NotePanel } from "@/components/panels/NotePanel";
 import { PdfViewer } from "@/components/panels/PdfViewer";
 import { ChatPanel } from "@/components/panels/ChatPanel";
 import { Onboarding } from "@/components/Onboarding";
+import {
+    DEFAULT_THEME_ID,
+    DEFAULT_THEME_MODE,
+    THEME_MODE_STORAGE_KEY,
+    THEME_STORAGE_KEY,
+    THEMES,
+    isThemeId,
+    isThemeMode,
+    type ThemeId,
+    type ThemeMode,
+} from "@/themes";
 
 function ResizeHandle() {
     return (
@@ -19,19 +30,35 @@ function ResizeHandle() {
 
 export function App() {
     const filePanelRef = usePanelRef();
-    const chatPanelRef = usePanelRef();
+    const notePanelRef = usePanelRef();
     const [filesOpen, setFilesOpen] = useState(true);
-    const [chatOpen, setChatOpen] = useState(true);
-    const [dark, setDark] = useState(true);
+    const [notesOpen, setNotesOpen] = useState(true);
+    const [themeId, setThemeId] = useState<ThemeId>(() => {
+        const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
+        return isThemeId(storedTheme) ? storedTheme : DEFAULT_THEME_ID;
+    });
+    const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
+        const storedMode = window.localStorage.getItem(THEME_MODE_STORAGE_KEY);
+        return isThemeMode(storedMode) ? storedMode : DEFAULT_THEME_MODE;
+    });
     const [workspacePath, setWorkspacePath] = useState<string | null>(null);
     const [checkingWorkspace, setCheckingWorkspace] = useState(true);
     const [activeNotePath, setActiveNotePath] = useState<string | null>(null);
     const [activePdfPage, setActivePdfPage] = useState<number | null>(null);
+    const [selectedSourceNames, setSelectedSourceNames] = useState<string[]>([]);
     const [notesVersion, setNotesVersion] = useState(0);
 
     useEffect(() => {
-        document.documentElement.classList.toggle("dark", dark);
-    }, [dark]);
+        const root = document.documentElement;
+
+        root.classList.toggle("dark", themeMode === "dark");
+        for (const theme of THEMES) {
+            root.classList.toggle(theme.className, theme.id === themeId);
+        }
+
+        window.localStorage.setItem(THEME_STORAGE_KEY, themeId);
+        window.localStorage.setItem(THEME_MODE_STORAGE_KEY, themeMode);
+    }, [themeId, themeMode]);
 
     useEffect(() => {
         window.electron.workspace.getPath().then((savedPath) => {
@@ -66,6 +93,7 @@ export function App() {
         setWorkspacePath(null);
         setActiveNotePath(null);
         setActivePdfPage(null);
+        setSelectedSourceNames([]);
     };
 
     const handleOpenFile = (filePath: string | null) => {
@@ -82,15 +110,17 @@ export function App() {
     const isPdf = activeNotePath?.endsWith(".pdf");
 
     return (
-        <div className="flex h-screen w-screen flex-col overflow-hidden bg-background text-foreground">
+        <div className="flex h-screen w-screen flex-col overflow-hidden bg-surface-shell text-foreground">
             <TopBar
                 workspaceName={workspaceName}
                 filesOpen={filesOpen}
                 onToggleFiles={() => togglePanel(filePanelRef)}
-                chatOpen={chatOpen}
-                onToggleChat={() => togglePanel(chatPanelRef)}
-                dark={dark}
-                onToggleDark={() => setDark((v) => !v)}
+                notesOpen={notesOpen}
+                onToggleNotes={() => togglePanel(notePanelRef)}
+                themeId={themeId}
+                themeMode={themeMode}
+                onThemeChange={setThemeId}
+                onThemeModeChange={setThemeMode}
                 onSwitchWorkspace={handleSwitchWorkspace}
                 onCloseWorkspace={handleCloseWorkspace}
             />
@@ -98,9 +128,9 @@ export function App() {
                 <Group orientation="horizontal" className="h-full w-full">
                     <Panel
                         panelRef={filePanelRef}
-                        defaultSize="20%"
-                        minSize="14%"
-                        maxSize="32%"
+                        defaultSize="16%"
+                        minSize="12%"
+                        maxSize="26%"
                         collapsible
                         collapsedSize="0%"
                         onResize={() =>
@@ -112,15 +142,44 @@ export function App() {
                             workspacePath={workspacePath}
                             workspaceName={workspaceName}
                             activeNotePath={activeNotePath}
+                            selectedSourceNames={selectedSourceNames}
                             refreshKey={notesVersion}
                             onOpenNote={handleOpenFile}
+                            onSelectedSourceNamesChange={setSelectedSourceNames}
                             onNotesChanged={() => setNotesVersion((v) => v + 1)}
                         />
                     </Panel>
 
                     <ResizeHandle />
 
-                    <Panel minSize="30%" style={{ overflow: "hidden" }}>
+                    <Panel
+                        defaultSize="54%"
+                        minSize="40%"
+                        style={{ overflow: "hidden" }}
+                    >
+                        <ChatPanel
+                            workspacePath={workspacePath}
+                            sourcesRefreshKey={notesVersion}
+                            selectedSourceNames={selectedSourceNames}
+                            onSelectedSourceNamesChange={setSelectedSourceNames}
+                            onOpenCitation={handleOpenCitation}
+                        />
+                    </Panel>
+
+                    <ResizeHandle />
+
+                    <Panel
+                        panelRef={notePanelRef}
+                        defaultSize="30%"
+                        minSize="20%"
+                        maxSize="44%"
+                        collapsible
+                        collapsedSize="0%"
+                        onResize={() =>
+                            setNotesOpen(!notePanelRef.current?.isCollapsed())
+                        }
+                        style={{ overflow: "hidden" }}
+                    >
                         {isPdf && activeNotePath ? (
                             <PdfViewer
                                 filePath={activeNotePath}
@@ -129,7 +188,6 @@ export function App() {
                             />
                         ) : (
                             <NotePanel
-                                workspacePath={workspacePath}
                                 notePath={activeNotePath}
                                 onChangeNotePath={handleOpenFile}
                                 onNotesChanged={() =>
@@ -137,27 +195,6 @@ export function App() {
                                 }
                             />
                         )}
-                    </Panel>
-
-                    <ResizeHandle />
-
-                    <Panel
-                        panelRef={chatPanelRef}
-                        defaultSize="28%"
-                        minSize="20%"
-                        maxSize="42%"
-                        collapsible
-                        collapsedSize="0%"
-                        onResize={() =>
-                            setChatOpen(!chatPanelRef.current?.isCollapsed())
-                        }
-                        style={{ overflow: "hidden" }}
-                    >
-                        <ChatPanel
-                            workspacePath={workspacePath}
-                            sourcesRefreshKey={notesVersion}
-                            onOpenCitation={handleOpenCitation}
-                        />
                     </Panel>
                 </Group>
             </div>

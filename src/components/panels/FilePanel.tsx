@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+    useCallback,
+    useEffect,
+    useMemo,
+    useState,
+    type Dispatch,
+    type MouseEvent as ReactMouseEvent,
+    type SetStateAction,
+} from "react";
 import { createPortal } from "react-dom";
 import {
     FilePlus2,
@@ -18,6 +26,8 @@ import {
     Copy,
     Files,
     ClipboardPaste,
+    ExternalLink,
+    MessageSquare,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -27,9 +37,7 @@ async function findCopyPath(
     sourcePath: string,
     targetDir: string,
 ): Promise<string | null> {
-    const sourceName = sourcePath.substring(
-        sourcePath.lastIndexOf("/") + 1,
-    );
+    const sourceName = sourcePath.substring(sourcePath.lastIndexOf("/") + 1);
     const dotIndex = sourceName.lastIndexOf(".");
     const ext = dotIndex >= 0 ? sourceName.slice(dotIndex) : "";
     const baseName =
@@ -50,15 +58,19 @@ export function FilePanel({
     workspacePath,
     workspaceName,
     activeNotePath,
+    selectedSourceNames,
     refreshKey,
     onOpenNote,
+    onSelectedSourceNamesChange,
     onNotesChanged,
 }: {
     workspacePath: string;
     workspaceName: string;
     activeNotePath: string | null;
+    selectedSourceNames: string[];
     refreshKey: number;
-    onOpenNote: (path: string) => void;
+    onOpenNote: (path: string | null) => void;
+    onSelectedSourceNamesChange: Dispatch<SetStateAction<string[]>>;
     onNotesChanged: () => void;
 }) {
     const [tree, setTree] = useState<FileNode[]>([]);
@@ -66,8 +78,7 @@ export function FilePanel({
     const [localVersion, setLocalVersion] = useState(0);
     const [searchQuery, setSearchQuery] = useState("");
     const [contextMenu, setContextMenu] = useState<{
-        filePath: string;
-        fileName: string;
+        node: FileNode;
         isSource: boolean;
         x: number;
         y: number;
@@ -116,65 +127,130 @@ export function FilePanel({
         }
     };
 
+    const activeFileName = activeNotePath?.split(/[/\\]/).pop() ?? null;
+
+    const removeSourceFromContext = (fileName: string) => {
+        onSelectedSourceNamesChange((current) =>
+            current.filter((selectedName) => selectedName !== fileName),
+        );
+    };
+
     const handleDeleteSource = async (fileName: string) => {
         await window.electron.sources.remove(workspacePath, fileName);
+        removeSourceFromContext(fileName);
+        if (activeFileName === fileName) onOpenNote(null);
         setLocalVersion((v) => v + 1);
         onNotesChanged();
     };
 
-    const handleFileContextMenu = useCallback(
-        (
-            filePath: string,
-            fileName: string,
-            isSource: boolean,
-            x: number,
-            y: number,
-        ) => {
-            setContextMenu({ filePath, fileName, isSource, x, y });
-        },
-        [],
-    );
+    const handleDeleteNote = async (filePath: string) => {
+        const ok = await window.electron.notes.delete(filePath);
+        if (!ok) return;
+        if (activeNotePath === filePath) onOpenNote(null);
+        setLocalVersion((v) => v + 1);
+        onNotesChanged();
+    };
+
+    const handleDeleteFile = async (node: FileNode) => {
+        const sourceEntry = sourceMap[node.name];
+        if (sourceEntry) {
+            await handleDeleteSource(node.name);
+            return;
+        }
+        await handleDeleteNote(node.path);
+    };
 
     const handleCopyPath = useCallback((filePath: string) => {
         navigator.clipboard.writeText(filePath).catch(() => undefined);
     }, []);
 
+    const handleRevealFile = useCallback(async (filePath: string) => {
+        await window.electron.workspace.revealFile(filePath);
+    }, []);
+
+    const handleToggleSourceContext = (fileName: string) => {
+        if (sourceMap[fileName]?.status !== "ready") return;
+        onSelectedSourceNamesChange((current) => {
+            if (current.includes(fileName)) {
+                return current.filter(
+                    (selectedName) => selectedName !== fileName,
+                );
+            }
+            return [...current, fileName];
+        });
+    };
+
+    const handleFileContextMenu = useCallback(
+        (event: ReactMouseEvent, node: FileNode) => {
+            event.preventDefault();
+            event.stopPropagation();
+            const isSource = sourceMap[node.name] !== undefined;
+            setContextMenu({
+                node,
+                isSource,
+                x: event.clientX,
+                y: event.clientY,
+            });
+        },
+        [sourceMap],
+    );
+
     const handleCloseContextMenu = useCallback(() => {
         setContextMenu(null);
     }, []);
 
-    const handleRenameStart = useCallback(() => {
-        if (!contextMenu) return;
-        setRenamingPath(contextMenu.filePath);
-        setContextMenu(null);
-    }, [contextMenu]);
-
     const handleRenameSubmit = useCallback(
-        async (filePath: string, newBaseName: string | null) => {
+        async (
+            filePath: string,
+            node: FileNode,
+            newBaseName: string | null,
+        ) => {
             setRenamingPath(null);
             if (newBaseName === null || newBaseName.trim().length === 0)
                 return;
-            const newPath = await window.electron.notes.rename(
+
+            const sourceEntry = sourceMap[node.name];
+            if (sourceEntry) {
+                const renamed = await window.electron.sources.rename(
+                    workspacePath,
+                    node.name,
+                    newBaseName.trim(),
+                );
+                if (!renamed) return;
+
+                const renamedPath = filePath.endsWith(node.name)
+                    ? `${filePath.slice(0, -node.name.length)}${renamed.fileName}`
+                    : filePath;
+                onSelectedSourceNamesChange((current) =>
+                    current.map((fileName) =>
+                        fileName === node.name
+                            ? renamed.fileName
+                            : fileName,
+                    ),
+                );
+                if (activeNotePath === filePath) onOpenNote(renamedPath);
+                setLocalVersion((v) => v + 1);
+                onNotesChanged();
+                return;
+            }
+
+            const renamedPath = await window.electron.notes.rename(
                 filePath,
                 newBaseName.trim(),
             );
-            if (newPath) {
-                if (filePath === activeNotePath) onOpenNote(newPath);
-                onNotesChanged();
-            }
+            if (!renamedPath) return;
+            if (activeNotePath === filePath) onOpenNote(renamedPath);
+            setLocalVersion((v) => v + 1);
+            onNotesChanged();
         },
-        [activeNotePath, onOpenNote, onNotesChanged],
-    );
-
-    const handleDeleteNote = useCallback(
-        async (filePath: string) => {
-            const success = await window.electron.notes.delete(filePath);
-            if (success) {
-                setLocalVersion((v) => v + 1);
-                onNotesChanged();
-            }
-        },
-        [onNotesChanged],
+        [
+            workspacePath,
+            sourceMap,
+            activeNotePath,
+            onOpenNote,
+            onNotesChanged,
+            onSelectedSourceNamesChange,
+        ],
     );
 
     const handleCopyFile = useCallback((filePath: string) => {
@@ -223,8 +299,15 @@ export function FilePanel({
         [onNotesChanged],
     );
 
+    const contextSourceEntry = contextMenu
+        ? sourceMap[contextMenu.node.name]
+        : undefined;
+    const contextInChat = contextMenu
+        ? selectedSourceNames.includes(contextMenu.node.name)
+        : false;
+
     return (
-        <aside className="flex h-full flex-col bg-sidebar">
+        <aside className="flex h-full flex-col bg-surface-files">
             <FilePanelHeader onAddPdf={handleAddPdf} onNewNote={handleNew} />
             <FileSearchInput value={searchQuery} onChange={setSearchQuery} />
             <FileTree
@@ -234,43 +317,57 @@ export function FilePanel({
                 onSelect={handleSelect}
                 getSourceEntry={getSourceEntry}
                 searchQuery={searchQuery}
-                onContextMenu={handleFileContextMenu}
+                onFileContextMenu={handleFileContextMenu}
                 renamingPath={renamingPath}
                 onRenameSubmit={handleRenameSubmit}
             />
             {contextMenu && (
                 <FileContextMenu
+                    node={contextMenu.node}
                     x={contextMenu.x}
                     y={contextMenu.y}
                     isSource={contextMenu.isSource}
+                    sourceEntry={contextSourceEntry}
+                    inChatContext={contextInChat}
                     pasteDisabled={!copiedFilePath}
-                    onRename={handleRenameStart}
+                    onOpen={() => {
+                        onOpenNote(contextMenu.node.path);
+                        setContextMenu(null);
+                    }}
+                    onRename={() => {
+                        setRenamingPath(contextMenu.node.path);
+                        setContextMenu(null);
+                    }}
                     onDuplicate={() => {
-                        handleDuplicateFile(contextMenu.filePath);
+                        handleDuplicateFile(contextMenu.node.path);
                         setContextMenu(null);
                     }}
                     onCopyFile={() => {
-                        handleCopyFile(contextMenu.filePath);
+                        handleCopyFile(contextMenu.node.path);
                         setContextMenu(null);
                     }}
                     onPaste={() => {
-                        const dir = contextMenu.filePath.substring(
+                        const dir = contextMenu.node.path.substring(
                             0,
-                            contextMenu.filePath.lastIndexOf("/"),
+                            contextMenu.node.path.lastIndexOf("/"),
                         );
                         handlePasteFile(dir);
                         setContextMenu(null);
                     }}
                     onCopyPath={() => {
-                        handleCopyPath(contextMenu.filePath);
+                        handleCopyPath(contextMenu.node.path);
+                        setContextMenu(null);
+                    }}
+                    onReveal={() => {
+                        handleRevealFile(contextMenu.node.path);
+                        setContextMenu(null);
+                    }}
+                    onToggleChatContext={() => {
+                        handleToggleSourceContext(contextMenu.node.name);
                         setContextMenu(null);
                     }}
                     onDelete={() => {
-                        if (contextMenu.isSource) {
-                            handleDeleteSource(contextMenu.fileName);
-                        } else {
-                            handleDeleteNote(contextMenu.filePath);
-                        }
+                        handleDeleteFile(contextMenu.node);
                         setContextMenu(null);
                     }}
                     onClose={handleCloseContextMenu}
@@ -348,7 +445,7 @@ function TreeItem({
     onSelect,
     getSourceEntry,
     forceExpand,
-    onContextMenu,
+    onFileContextMenu,
     renamingPath,
     onRenameSubmit,
 }: {
@@ -358,15 +455,13 @@ function TreeItem({
     onSelect: (path: string) => void;
     getSourceEntry?: (fileName: string) => SourceEntry | undefined;
     forceExpand?: boolean;
-    onContextMenu?: (
-        filePath: string,
-        fileName: string,
-        isSource: boolean,
-        x: number,
-        y: number,
-    ) => void;
+    onFileContextMenu: (event: ReactMouseEvent, node: FileNode) => void;
     renamingPath?: string | null;
-    onRenameSubmit?: (filePath: string, newBaseName: string | null) => void;
+    onRenameSubmit?: (
+        filePath: string,
+        node: FileNode,
+        newBaseName: string | null,
+    ) => void;
 }) {
     const [open, setOpen] = useState(depth === 0 || forceExpand);
 
@@ -393,7 +488,7 @@ function TreeItem({
                             onSelect={onSelect}
                             getSourceEntry={getSourceEntry}
                             forceExpand={forceExpand}
-                            onContextMenu={onContextMenu}
+                            onFileContextMenu={onFileContextMenu}
                             renamingPath={renamingPath}
                             onRenameSubmit={onRenameSubmit}
                         />
@@ -406,15 +501,11 @@ function TreeItem({
     const sourceEntry = getSourceEntry?.(node.name);
     const isSource = sourceEntry !== undefined;
 
-    const handleContextMenu = (e: React.MouseEvent) => {
-        e.preventDefault();
-        onContextMenu?.(node.path, node.name, isSource, e.clientX, e.clientY);
-    };
-
     if (node.path === renamingPath) {
         const dotIndex = node.name.lastIndexOf(".");
         const ext = dotIndex >= 0 ? node.name.slice(dotIndex) : "";
-        const baseName = dotIndex >= 0 ? node.name.slice(0, dotIndex) : node.name;
+        const baseName =
+            dotIndex >= 0 ? node.name.slice(0, dotIndex) : node.name;
 
         return (
             <div
@@ -431,15 +522,23 @@ function TreeItem({
                     onKeyDown={(e) => {
                         if (e.key === "Enter") {
                             e.preventDefault();
-                            onRenameSubmit?.(node.path, e.currentTarget.value);
+                            onRenameSubmit?.(
+                                node.path,
+                                node,
+                                e.currentTarget.value,
+                            );
                         }
                         if (e.key === "Escape") {
                             e.preventDefault();
-                            onRenameSubmit?.(node.path, null);
+                            onRenameSubmit?.(node.path, node, null);
                         }
                     }}
                     onBlur={(e) =>
-                        onRenameSubmit?.(node.path, e.currentTarget.value)
+                        onRenameSubmit?.(
+                            node.path,
+                            node,
+                            e.currentTarget.value,
+                        )
                     }
                     className="h-6 w-full rounded border border-input bg-background px-1.5 text-sm outline-none"
                 />
@@ -458,7 +557,7 @@ function TreeItem({
                 "group flex items-center rounded px-1.5 py-1 hover:bg-accent",
                 isActive && "bg-accent font-medium",
             )}
-            onContextMenu={handleContextMenu}
+            onContextMenu={(event) => onFileContextMenu(event, node)}
         >
             <FileRowButton
                 name={node.name}
@@ -524,7 +623,7 @@ function FileSearchInput({
 }) {
     return (
         <div className="px-3 py-2">
-            <div className="flex items-center gap-2 rounded-md border border-input bg-background px-2">
+            <div className="flex items-center gap-2 rounded-md border border-border bg-accent/60 px-2">
                 <Search className="size-3.5 text-muted-foreground" />
                 <input
                     value={value}
@@ -538,27 +637,39 @@ function FileSearchInput({
 }
 
 function FileContextMenu({
+    node,
     x,
     y,
     isSource,
+    sourceEntry,
+    inChatContext,
     pasteDisabled,
+    onOpen,
     onRename,
     onDuplicate,
     onCopyFile,
     onPaste,
     onCopyPath,
+    onReveal,
+    onToggleChatContext,
     onDelete,
     onClose,
 }: {
+    node: FileNode;
     x: number;
     y: number;
     isSource: boolean;
+    sourceEntry: SourceEntry | undefined;
+    inChatContext: boolean;
     pasteDisabled: boolean;
+    onOpen: () => void;
     onRename: () => void;
     onDuplicate: () => void;
     onCopyFile: () => void;
     onPaste: () => void;
     onCopyPath: () => void;
+    onReveal: () => void;
+    onToggleChatContext: () => void;
     onDelete: () => void;
     onClose: () => void;
 }) {
@@ -575,71 +686,110 @@ function FileContextMenu({
         };
     }, [onClose]);
 
+    const canUseChatContext = sourceEntry?.status === "ready";
+    const chatContextLabel = inChatContext
+        ? "Remove from chat context"
+        : "Add to chat context";
+
+    const isNoteFile = !isSource && node.name.endsWith(".md");
+
     return createPortal(
         <div
-            className="fixed z-50 flex min-w-36 flex-col overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md"
+            className="fixed z-50 flex min-w-48 flex-col overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md"
             style={{ left: x, top: y }}
+            onClick={(event) => event.stopPropagation()}
+            onContextMenu={(event) => event.preventDefault()}
         >
-            <Button
-                variant="ghost"
-                size="sm"
-                className="justify-start rounded-sm"
-                onClick={onRename}
-                disabled={isSource}
-            >
-                <Pencil className="size-4" />
+            <div className="truncate px-2 py-1 text-[11px] text-muted-foreground">
+                {node.name}
+            </div>
+            <ContextMenuItem icon={ExternalLink} onSelect={onOpen}>
+                Open
+            </ContextMenuItem>
+            <ContextMenuItem icon={Pencil} onSelect={onRename}>
                 Rename
-            </Button>
-            <Button
-                variant="ghost"
-                size="sm"
-                className="justify-start rounded-sm"
-                onClick={onDuplicate}
+            </ContextMenuItem>
+            <ContextMenuItem
+                icon={Files}
+                onSelect={onDuplicate}
                 disabled={isSource}
             >
-                <Files className="size-4" />
                 Duplicate
-            </Button>
-            <Button
-                variant="ghost"
-                size="sm"
-                className="justify-start rounded-sm"
-                onClick={onCopyFile}
+            </ContextMenuItem>
+            <ContextMenuItem
+                icon={Copy}
+                onSelect={onCopyFile}
                 disabled={isSource}
             >
-                <Copy className="size-4" />
                 Copy
-            </Button>
-            <Button
-                variant="ghost"
-                size="sm"
-                className="justify-start rounded-sm"
-                onClick={onPaste}
+            </ContextMenuItem>
+            <ContextMenuItem
+                icon={ClipboardPaste}
+                onSelect={onPaste}
                 disabled={isSource || pasteDisabled}
             >
-                <ClipboardPaste className="size-4" />
                 Paste
-            </Button>
-            <Button
-                variant="ghost"
-                size="sm"
-                className="justify-start rounded-sm"
-                onClick={onCopyPath}
+            </ContextMenuItem>
+            <ContextMenuItem icon={Copy} onSelect={onCopyPath}>
+                Copy path
+            </ContextMenuItem>
+            <ContextMenuItem icon={FolderOpen} onSelect={onReveal}>
+                Reveal in Finder
+            </ContextMenuItem>
+            {isSource ? (
+                <ContextMenuItem
+                    icon={MessageSquare}
+                    disabled={!canUseChatContext}
+                    onSelect={onToggleChatContext}
+                >
+                    {canUseChatContext ? chatContextLabel : "Source not ready"}
+                </ContextMenuItem>
+            ) : null}
+            <div className="my-1 h-px bg-border" />
+            <ContextMenuItem
+                icon={Trash2}
+                variant="destructive"
+                onSelect={onDelete}
             >
-                <Copy className="size-4" />
-                Copy Path
-            </Button>
-            <Button
-                variant="ghost"
-                size="sm"
-                className="justify-start rounded-sm hover:text-destructive"
-                onClick={onDelete}
-            >
-                <Trash2 className="size-4" />
-                Delete
-            </Button>
+                {isSource
+                    ? "Remove source"
+                    : isNoteFile
+                      ? "Delete note"
+                      : "Delete file"}
+            </ContextMenuItem>
         </div>,
         document.body,
+    );
+}
+
+function ContextMenuItem({
+    children,
+    icon: Icon,
+    disabled = false,
+    variant,
+    onSelect,
+}: {
+    children: React.ReactNode;
+    icon: React.ComponentType<{ className?: string }>;
+    disabled?: boolean;
+    variant?: "destructive";
+    onSelect: () => void;
+}) {
+    return (
+        <Button
+            variant="ghost"
+            size="sm"
+            className={cn(
+                "justify-start rounded-sm",
+                variant === "destructive" &&
+                    "hover:bg-destructive/10 hover:text-destructive",
+            )}
+            disabled={disabled}
+            onClick={onSelect}
+        >
+            <Icon className="size-4" />
+            {children}
+        </Button>
     );
 }
 
@@ -651,7 +801,10 @@ function filterTree(nodes: FileNode[], query: string): FileNode[] {
             const filtered = filterTree(node.children ?? [], query);
             const nameMatches = node.name.toLowerCase().includes(lower);
             if (nameMatches || filtered.length > 0) {
-                acc.push({ ...node, children: nameMatches ? node.children : filtered });
+                acc.push({
+                    ...node,
+                    children: nameMatches ? node.children : filtered,
+                });
             }
         } else if (node.name.toLowerCase().includes(lower)) {
             acc.push(node);
@@ -667,7 +820,7 @@ function FileTree({
     onSelect,
     getSourceEntry,
     searchQuery,
-    onContextMenu,
+    onFileContextMenu,
     renamingPath,
     onRenameSubmit,
 }: {
@@ -677,15 +830,13 @@ function FileTree({
     onSelect: (path: string) => void;
     getSourceEntry: (fileName: string) => SourceEntry | undefined;
     searchQuery: string;
-    onContextMenu: (
-        filePath: string,
-        fileName: string,
-        isSource: boolean,
-        x: number,
-        y: number,
-    ) => void;
+    onFileContextMenu: (event: ReactMouseEvent, node: FileNode) => void;
     renamingPath: string | null;
-    onRenameSubmit: (filePath: string, newBaseName: string | null) => void;
+    onRenameSubmit: (
+        filePath: string,
+        node: FileNode,
+        newBaseName: string | null,
+    ) => void;
 }) {
     const filteredTree = useMemo(
         () => filterTree(tree, searchQuery),
@@ -705,7 +856,7 @@ function FileTree({
                     onSelect={onSelect}
                     getSourceEntry={getSourceEntry}
                     forceExpand={searching}
-                    onContextMenu={onContextMenu}
+                    onFileContextMenu={onFileContextMenu}
                     renamingPath={renamingPath}
                     onRenameSubmit={onRenameSubmit}
                 />

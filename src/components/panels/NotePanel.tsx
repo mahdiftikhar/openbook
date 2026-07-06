@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
-import { FileText, Trash2 } from "lucide-react";
+import { FileText } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { PanelTabBar } from "@/components/panels/PanelTabBar";
 
 const AUTOSAVE_DELAY = 600;
 
@@ -14,12 +14,10 @@ function firstName(line: string): string {
 }
 
 export function NotePanel({
-    workspacePath,
     notePath,
     onChangeNotePath,
     onNotesChanged,
 }: {
-    workspacePath: string;
     notePath: string | null;
     onChangeNotePath: (path: string | null) => void;
     onNotesChanged: () => void;
@@ -27,7 +25,6 @@ export function NotePanel({
     const [content, setContent] = useState("");
     const [loaded, setLoaded] = useState(false);
     const [dirty, setDirty] = useState(false);
-    const [saving, setSaving] = useState(false);
     const editorRef = useRef<HTMLTextAreaElement | null>(null);
     const currentPathRef = useRef<string | null>(notePath);
 
@@ -68,12 +65,10 @@ export function NotePanel({
     useEffect(() => {
         if (!loaded || !notePath) return;
         if (!dirty) return;
-        setSaving(true);
         const timer = setTimeout(async () => {
             const path = currentPathRef.current;
             if (path) await performSave(content, path);
             setDirty(false);
-            setSaving(false);
         }, AUTOSAVE_DELAY);
         return () => clearTimeout(timer);
     }, [content, dirty, loaded, notePath]);
@@ -82,18 +77,13 @@ export function NotePanel({
         if (!dirty) return;
         const path = currentPathRef.current;
         if (!path) return;
-        setSaving(true);
         await performSave(content, path);
         setDirty(false);
-        setSaving(false);
     };
 
-    const handleDelete = async () => {
-        if (!notePath) return;
-        const ok = await window.electron.notes.delete(notePath);
-        if (!ok) return;
+    const handleClose = async () => {
+        await handleBlurSave();
         onChangeNotePath(null);
-        onNotesChanged();
     };
 
     if (!notePath) {
@@ -101,21 +91,12 @@ export function NotePanel({
     }
 
     const fileName = notePath.split(/[/\\]/).pop() ?? notePath;
-    const relativeDir = notePath
-        .slice(workspacePath.length)
-        .split(/[/\\]+/)
-        .filter(Boolean)
-        .slice(0, -1)
-        .join(" / ");
-
     return (
-        <section className="flex h-full flex-col bg-background">
+        <section className="flex h-full flex-col bg-surface-reference">
             <NoteHeader
                 fileName={fileName}
-                relativeDir={relativeDir}
-                saving={saving}
                 dirty={dirty}
-                onDelete={handleDelete}
+                onClose={handleClose}
             />
             <NoteEditor
                 editorRef={editorRef}
@@ -133,7 +114,7 @@ export function NotePanel({
 
 function EmptyNoteState() {
     return (
-        <section className="flex h-full flex-col items-center justify-center bg-background text-muted-foreground">
+        <section className="flex h-full flex-col items-center justify-center bg-surface-reference text-muted-foreground">
             <FileText className="size-8 opacity-40" />
             <p className="mt-3 text-sm">Select a note or create a new one.</p>
         </section>
@@ -142,46 +123,21 @@ function EmptyNoteState() {
 
 function NoteHeader({
     fileName,
-    relativeDir,
-    saving,
     dirty,
-    onDelete,
+    onClose,
 }: {
     fileName: string;
-    relativeDir: string;
-    saving: boolean;
     dirty: boolean;
-    onDelete: () => void;
+    onClose: () => void;
 }) {
     return (
-        <div className="flex items-center justify-between border-b px-4 py-2.5">
-            <div className="flex min-w-0 flex-col">
-                <span className="truncate text-sm font-medium">{fileName}</span>
-                <span className="truncate text-xs text-muted-foreground">
-                    {relativeDir}
-                </span>
-            </div>
-            <div className="flex items-center gap-1">
-                <SaveStatus saving={saving} dirty={dirty} />
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    className="size-7"
-                    aria-label="Delete note"
-                    onClick={onDelete}
-                >
-                    <Trash2 className="size-4" />
-                </Button>
-            </div>
-        </div>
-    );
-}
-
-function SaveStatus({ saving, dirty }: { saving: boolean; dirty: boolean }) {
-    return (
-        <span className="mr-1 text-xs text-muted-foreground">
-            {saving ? "Saving..." : dirty ? "Unsaved" : "Saved"}
-        </span>
+        <PanelTabBar
+            className="bg-surface-reference-header"
+            activeTabClassName="border-b-surface-reference bg-surface-reference"
+            tabs={[{ id: fileName, title: fileName, dirty, closable: true }]}
+            activeTabId={fileName}
+            onCloseTab={onClose}
+        />
     );
 }
 

@@ -2,19 +2,21 @@ import {
     useEffect,
     useRef,
     useState,
+    type Dispatch,
     type ReactNode,
     type RefObject,
+    type SetStateAction,
 } from "react";
 import {
     BookOpen,
     ChevronDown,
     Paperclip,
     Send,
-    Sparkles,
     Square,
     X,
 } from "lucide-react";
 
+import { PanelTabBar } from "@/components/panels/PanelTabBar";
 import { Button } from "@/components/ui/button";
 import {
     DropdownMenu,
@@ -38,14 +40,17 @@ type Message = {
 export function ChatPanel({
     workspacePath,
     sourcesRefreshKey,
+    selectedSourceNames,
+    onSelectedSourceNamesChange,
     onOpenCitation,
 }: {
     workspacePath: string;
     sourcesRefreshKey: number;
+    selectedSourceNames: string[];
+    onSelectedSourceNamesChange: Dispatch<SetStateAction<string[]>>;
     onOpenCitation: (citation: ChatCitation) => void;
 }) {
     const [sources, setSources] = useState<SourceEntry[]>([]);
-    const [selectedSourceNames, setSelectedSourceNames] = useState<string[]>([]);
     const [messages, setMessages] = useState<Message[]>([]);
     const [draft, setDraft] = useState("");
     const [streaming, setStreaming] = useState(false);
@@ -63,7 +68,7 @@ export function ChatPanel({
             const readyNames = entries
                 .filter((entry) => entry.status === "ready")
                 .map((entry) => entry.fileName);
-            setSelectedSourceNames((current) =>
+            onSelectedSourceNamesChange((current) =>
                 current.filter((fileName) => readyNames.includes(fileName)),
             );
         });
@@ -71,7 +76,7 @@ export function ChatPanel({
         return () => {
             active = false;
         };
-    }, [workspacePath, sourcesRefreshKey]);
+    }, [workspacePath, sourcesRefreshKey, onSelectedSourceNamesChange]);
 
     useEffect(() => {
         const unsubscribe = window.electron.chat.onStream((event) => {
@@ -154,7 +159,7 @@ export function ChatPanel({
     );
 
     const toggleSource = (fileName: string) => {
-        setSelectedSourceNames((current) => {
+        onSelectedSourceNamesChange((current) => {
             if (current.includes(fileName)) {
                 return current.filter((selectedName) => selectedName !== fileName);
             }
@@ -220,11 +225,13 @@ export function ChatPanel({
     };
 
     return (
-        <aside className="flex h-full flex-col bg-background">
-            <ChatHeader selectedCount={selectedSources.length} />
+        <aside className="flex h-full flex-col bg-surface-chat">
+            <ChatHeader selectedSources={selectedSources} />
             <MessageList
                 listRef={messageListRef}
                 messages={messages}
+                readySourceCount={readySources.length}
+                selectedSourceCount={selectedSources.length}
                 onOpenCitation={onOpenCitation}
             />
             <ChatComposer
@@ -234,7 +241,7 @@ export function ChatPanel({
                 selectedSources={selectedSources}
                 streaming={streaming}
                 onCancel={handleCancel}
-                onClearSources={() => setSelectedSourceNames([])}
+                onClearSources={() => onSelectedSourceNamesChange([])}
                 onDraftChange={setDraft}
                 onSend={send}
                 onToggleSource={toggleSource}
@@ -243,34 +250,52 @@ export function ChatPanel({
     );
 }
 
-function ChatHeader({ selectedCount }: { selectedCount: number }) {
+function ChatHeader({
+    selectedSources,
+}: {
+    selectedSources: SourceEntry[];
+}) {
+    const selectedCount = selectedSources.length;
+
     return (
-        <div className="flex items-center gap-2 border-b px-3 py-2.5">
-            <Sparkles className="size-4 text-muted-foreground" />
-            <span className="text-sm font-medium">Assistant</span>
-            <span className="ml-auto text-xs text-muted-foreground">
-                {selectedCount === 1
-                    ? "1 source selected"
-                    : `${selectedCount} sources selected`}
-            </span>
-        </div>
+        <PanelTabBar
+            className="bg-surface-chat-header"
+            activeTabClassName="border-b-surface-chat bg-surface-chat"
+            tabs={[{ id: "research-chat", title: "Research Chat" }]}
+            activeTabId="research-chat"
+            actions={
+                <span className="truncate text-xs text-muted-foreground">
+                    {formatSourceCount(selectedCount)}
+                </span>
+            }
+        />
     );
 }
 
 function MessageList({
     listRef,
     messages,
+    readySourceCount,
+    selectedSourceCount,
     onOpenCitation,
 }: {
     listRef: RefObject<HTMLDivElement>;
     messages: Message[];
+    readySourceCount: number;
+    selectedSourceCount: number;
     onOpenCitation: (citation: ChatCitation) => void;
 }) {
     return (
-        <div ref={listRef} className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
-            <div className="mx-auto flex max-w-sm flex-col gap-3">
+        <div
+            ref={listRef}
+            className="min-h-0 flex-1 overflow-y-auto bg-surface-chat px-6 py-6"
+        >
+            <div className="mx-auto flex max-w-3xl flex-col gap-5">
                 {messages.length === 0 ? (
-                    <EmptyChatState />
+                    <EmptyChatState
+                        readySourceCount={readySourceCount}
+                        selectedSourceCount={selectedSourceCount}
+                    />
                 ) : (
                     messages.map((message) => (
                         <MessageBubble
@@ -285,11 +310,26 @@ function MessageList({
     );
 }
 
-function EmptyChatState() {
+function EmptyChatState({
+    readySourceCount,
+    selectedSourceCount,
+}: {
+    readySourceCount: number;
+    selectedSourceCount: number;
+}) {
     return (
-        <div className="rounded-lg border border-dashed px-3 py-4 text-center text-xs text-muted-foreground">
-            <BookOpen className="mx-auto mb-2 size-5 opacity-50" />
-            Select sources, then ask a question about them.
+        <div className="mx-auto max-w-lg py-16 text-center">
+            <BookOpen className="mx-auto size-6 text-muted-foreground/70" />
+            <h3 className="mt-4 text-base font-semibold tracking-tight">
+                Start with a research question
+            </h3>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                Ask, compare, summarize, or trace an answer back to the selected
+                sources.
+            </p>
+            <p className="mt-3 text-xs text-muted-foreground">
+                {formatEmptyContextMessage(readySourceCount, selectedSourceCount)}
+            </p>
         </div>
     );
 }
@@ -305,24 +345,37 @@ function MessageBubble({
 
     return (
         <div className={cn("flex", isUser ? "justify-end" : "justify-start")}>
-            <div
-                className={cn(
-                    "max-w-[85%] whitespace-pre-wrap rounded-lg px-3 py-2 text-sm",
-                    isUser
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-foreground",
-                    message.status === "error" && "text-destructive",
-                )}
-            >
-                {message.content ? (
-                    <CitationText
-                        content={message.content}
-                        citations={message.citations ?? []}
-                        onOpenCitation={onOpenCitation}
-                    />
-                ) : (
-                    <span className="text-muted-foreground">Thinking...</span>
-                )}
+            <div className={cn(isUser ? "max-w-[78%]" : "w-full")}>
+                <div
+                    className={cn(
+                        "mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground",
+                        isUser && "text-right",
+                    )}
+                >
+                    {isUser ? "You" : "Answer"}
+                </div>
+                <div
+                    className={cn(
+                        "whitespace-pre-wrap text-sm leading-6",
+                        isUser
+                            ? "rounded-2xl rounded-tr-sm bg-primary px-4 py-3 text-primary-foreground"
+                            : "text-foreground",
+                        message.status === "error" &&
+                            "rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-destructive",
+                    )}
+                >
+                    {message.content ? (
+                        <CitationText
+                            content={message.content}
+                            citations={message.citations ?? []}
+                            onOpenCitation={onOpenCitation}
+                        />
+                    ) : (
+                        <span className="text-muted-foreground">
+                            Reading selected sources...
+                        </span>
+                    )}
+                </div>
             </div>
         </div>
     );
@@ -378,6 +431,26 @@ function CitationText({
     return <>{parts}</>;
 }
 
+function formatSourceCount(count: number): string {
+    if (count === 0) return "No sources selected";
+    if (count === 1) return "1 source selected";
+    return `${count} sources selected`;
+}
+
+function formatEmptyContextMessage(
+    readySourceCount: number,
+    selectedSourceCount: number,
+): string {
+    if (readySourceCount === 0) return "Add a PDF source before starting.";
+    if (selectedSourceCount === 0) {
+        return "Select one or more ready sources below to start a grounded conversation.";
+    }
+    if (selectedSourceCount === 1) {
+        return "1 source is selected. Ask a question to begin.";
+    }
+    return `${selectedSourceCount} sources are selected. Ask a question to begin.`;
+}
+
 function ChatComposer({
     draft,
     readySources,
@@ -404,7 +477,7 @@ function ChatComposer({
     const canSend = Boolean(draft.trim()) && selectedSourceNames.length > 0;
 
     return (
-        <div className="border-t px-3 py-2.5">
+        <div className="border-t bg-surface-composer px-3 py-2.5">
             <ContextBar
                 readySources={readySources}
                 selectedSourceNames={selectedSourceNames}
