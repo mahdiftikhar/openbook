@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+    useCallback,
+    useEffect,
+    useMemo,
+    useState,
+    type Dispatch,
+    type MouseEvent as ReactMouseEvent,
+    type SetStateAction,
+} from "react";
 import {
     FilePlus2,
     File as FileIcon,
@@ -10,7 +18,6 @@ import {
     Hash,
     FileText,
     Plus,
-    Trash2,
     Check,
     AlertCircle,
 } from "lucide-react";
@@ -18,24 +25,37 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+type FileContextMenuState = {
+    node: FileNode;
+    x: number;
+    y: number;
+};
+
 export function FilePanel({
     workspacePath,
     workspaceName,
     activeNotePath,
+    selectedSourceNames,
     refreshKey,
     onOpenNote,
+    onSelectedSourceNamesChange,
     onNotesChanged,
 }: {
     workspacePath: string;
     workspaceName: string;
     activeNotePath: string | null;
+    selectedSourceNames: string[];
     refreshKey: number;
-    onOpenNote: (path: string) => void;
+    onOpenNote: (path: string | null) => void;
+    onSelectedSourceNamesChange: Dispatch<SetStateAction<string[]>>;
     onNotesChanged: () => void;
 }) {
     const [tree, setTree] = useState<FileNode[]>([]);
     const [sourceEntries, setSourceEntries] = useState<SourceEntry[]>([]);
     const [localVersion, setLocalVersion] = useState(0);
+    const [contextMenu, setContextMenu] = useState<FileContextMenuState | null>(
+        null,
+    );
 
     useEffect(() => {
         window.electron.workspace.listFiles(workspacePath).then(setTree);
@@ -78,11 +98,127 @@ export function FilePanel({
         }
     };
 
+    const activeFileName = activeNotePath?.split(/[/\\]/).pop() ?? null;
+
+    const removeSourceFromContext = (fileName: string) => {
+        onSelectedSourceNamesChange((current) =>
+            current.filter((selectedName) => selectedName !== fileName),
+        );
+    };
+
     const handleDeleteSource = async (fileName: string) => {
         await window.electron.sources.remove(workspacePath, fileName);
+        removeSourceFromContext(fileName);
+        if (activeFileName === fileName) onOpenNote(null);
         setLocalVersion((v) => v + 1);
         onNotesChanged();
     };
+
+    const handleDeleteFile = async (node: FileNode) => {
+        const sourceEntry = sourceMap[node.name];
+        if (sourceEntry) {
+            await handleDeleteSource(node.name);
+            return;
+        }
+
+        const ok = await window.electron.notes.delete(node.path);
+        if (!ok) return;
+        if (activeNotePath === node.path) onOpenNote(null);
+        setLocalVersion((v) => v + 1);
+        onNotesChanged();
+    };
+
+    const handleRenameFile = async (node: FileNode) => {
+        const baseName = node.name.replace(/\.[^.]+$/, "");
+        const nextBaseName = window.prompt("Rename", baseName)?.trim();
+        if (!nextBaseName) return;
+
+        const sourceEntry = sourceMap[node.name];
+        if (sourceEntry) {
+            const renamed = await window.electron.sources.rename(
+                workspacePath,
+                node.name,
+                nextBaseName,
+            );
+            if (!renamed) return;
+
+            const renamedPath = node.path.endsWith(node.name)
+                ? `${node.path.slice(0, -node.name.length)}${renamed.fileName}`
+                : node.path;
+            onSelectedSourceNamesChange((current) =>
+                current.map((fileName) =>
+                    fileName === node.name ? renamed.fileName : fileName,
+                ),
+            );
+            if (activeNotePath === node.path) onOpenNote(renamedPath);
+            setLocalVersion((v) => v + 1);
+            onNotesChanged();
+            return;
+        }
+
+        const renamedPath = await window.electron.notes.rename(
+            node.path,
+            nextBaseName,
+        );
+        if (!renamedPath) return;
+        if (activeNotePath === node.path) onOpenNote(renamedPath);
+        setLocalVersion((v) => v + 1);
+        onNotesChanged();
+    };
+
+    const handleCopyPath = async (node: FileNode) => {
+        await navigator.clipboard.writeText(node.path);
+    };
+
+    const handleRevealFile = async (node: FileNode) => {
+        await window.electron.workspace.revealFile(node.path);
+    };
+
+    const handleToggleSourceContext = (fileName: string) => {
+        if (sourceMap[fileName]?.status !== "ready") return;
+        onSelectedSourceNamesChange((current) => {
+            if (current.includes(fileName)) {
+                return current.filter((selectedName) => selectedName !== fileName);
+            }
+            return [...current, fileName];
+        });
+    };
+
+    const handleFileContextMenu = (
+        event: ReactMouseEvent,
+        node: FileNode,
+    ) => {
+        event.preventDefault();
+        event.stopPropagation();
+        setContextMenu({ node, x: event.clientX, y: event.clientY });
+    };
+
+    useEffect(() => {
+        if (!contextMenu) return;
+
+        const close = () => setContextMenu(null);
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === "Escape") close();
+        };
+
+        window.addEventListener("click", close);
+        window.addEventListener("contextmenu", close);
+        window.addEventListener("resize", close);
+        window.addEventListener("keydown", handleKeyDown);
+        return () => {
+            window.removeEventListener("click", close);
+            window.removeEventListener("contextmenu", close);
+            window.removeEventListener("resize", close);
+            window.removeEventListener("keydown", handleKeyDown);
+        };
+    }, [contextMenu]);
+
+    const contextSourceEntry = contextMenu
+        ? sourceMap[contextMenu.node.name]
+        : undefined;
+    const contextInChat = contextMenu
+        ? selectedSourceNames.includes(contextMenu.node.name)
+        : false;
 
     return (
         <aside className="flex h-full flex-col bg-surface-files">
@@ -94,8 +230,26 @@ export function FilePanel({
                 activeNotePath={activeNotePath}
                 onSelect={handleSelect}
                 getSourceEntry={getSourceEntry}
-                onDeleteSource={handleDeleteSource}
+                onFileContextMenu={handleFileContextMenu}
             />
+            {contextMenu ? (
+                <FileContextMenu
+                    node={contextMenu.node}
+                    x={contextMenu.x}
+                    y={contextMenu.y}
+                    sourceEntry={contextSourceEntry}
+                    inChatContext={contextInChat}
+                    onOpen={() => onOpenNote(contextMenu.node.path)}
+                    onRename={() => handleRenameFile(contextMenu.node)}
+                    onReveal={() => handleRevealFile(contextMenu.node)}
+                    onCopyPath={() => handleCopyPath(contextMenu.node)}
+                    onToggleChatContext={() =>
+                        handleToggleSourceContext(contextMenu.node.name)
+                    }
+                    onDelete={() => handleDeleteFile(contextMenu.node)}
+                    onClose={() => setContextMenu(null)}
+                />
+            ) : null}
         </aside>
     );
 }
@@ -167,14 +321,14 @@ function TreeItem({
     selectedPath,
     onSelect,
     getSourceEntry,
-    onDeleteSource,
+    onFileContextMenu,
 }: {
     node: FileNode;
     depth: number;
     selectedPath: string | null;
     onSelect: (path: string) => void;
     getSourceEntry?: (fileName: string) => SourceEntry | undefined;
-    onDeleteSource?: (fileName: string) => void;
+    onFileContextMenu: (event: ReactMouseEvent, node: FileNode) => void;
 }) {
     const [open, setOpen] = useState(depth === 0);
 
@@ -196,7 +350,7 @@ function TreeItem({
                             selectedPath={selectedPath}
                             onSelect={onSelect}
                             getSourceEntry={getSourceEntry}
-                            onDeleteSource={onDeleteSource}
+                            onFileContextMenu={onFileContextMenu}
                         />
                     ))}
             </div>
@@ -213,6 +367,7 @@ function TreeItem({
                 "group flex items-center rounded px-1.5 py-1 hover:bg-accent",
                 isActive && "bg-accent font-medium",
             )}
+            onContextMenu={(event) => onFileContextMenu(event, node)}
         >
             <FileRowButton
                 name={node.name}
@@ -228,15 +383,6 @@ function TreeItem({
                     className="size-3 shrink-0 text-destructive"
                     aria-label={sourceEntry.error ?? "Error"}
                 />
-            )}
-            {isSource && onDeleteSource && (
-                <button
-                    onClick={() => onDeleteSource(node.name)}
-                    className="shrink-0 rounded p-0.5 opacity-0 hover:bg-accent-foreground/10 group-hover:opacity-100"
-                    aria-label={`Remove ${node.name}`}
-                >
-                    <Trash2 className="size-3 text-muted-foreground" />
-                </button>
             )}
         </div>
     );
@@ -292,20 +438,118 @@ function FileSearchInput() {
     );
 }
 
+function FileContextMenu({
+    node,
+    x,
+    y,
+    sourceEntry,
+    inChatContext,
+    onOpen,
+    onRename,
+    onReveal,
+    onCopyPath,
+    onToggleChatContext,
+    onDelete,
+    onClose,
+}: {
+    node: FileNode;
+    x: number;
+    y: number;
+    sourceEntry: SourceEntry | undefined;
+    inChatContext: boolean;
+    onOpen: () => void;
+    onRename: () => void | Promise<void>;
+    onReveal: () => void | Promise<void>;
+    onCopyPath: () => void | Promise<void>;
+    onToggleChatContext: () => void;
+    onDelete: () => void | Promise<void>;
+    onClose: () => void;
+}) {
+    const run = (action: () => void | Promise<void>) => {
+        void Promise.resolve(action()).then(onClose, onClose);
+    };
+    const canUseChatContext = sourceEntry?.status === "ready";
+    const chatContextLabel = inChatContext
+        ? "Remove from chat context"
+        : "Add to chat context";
+
+    return (
+        <div
+            className="fixed z-50 min-w-48 rounded-md border bg-popover p-1 text-popover-foreground shadow-md"
+            style={{ left: x, top: y }}
+            onClick={(event) => event.stopPropagation()}
+            onContextMenu={(event) => event.preventDefault()}
+        >
+            <div className="truncate px-2 py-1 text-[11px] text-muted-foreground">
+                {node.name}
+            </div>
+            <FileContextMenuItem onSelect={() => run(onOpen)}>Open</FileContextMenuItem>
+            <FileContextMenuItem onSelect={() => run(onRename)}>
+                Rename
+            </FileContextMenuItem>
+            <FileContextMenuItem onSelect={() => run(onReveal)}>
+                Reveal in Finder
+            </FileContextMenuItem>
+            <FileContextMenuItem onSelect={() => run(onCopyPath)}>
+                Copy path
+            </FileContextMenuItem>
+            {sourceEntry ? (
+                <FileContextMenuItem
+                    disabled={!canUseChatContext}
+                    onSelect={() => run(onToggleChatContext)}
+                >
+                    {canUseChatContext ? chatContextLabel : "Source not ready"}
+                </FileContextMenuItem>
+            ) : null}
+            <div className="my-1 h-px bg-border" />
+            <FileContextMenuItem onSelect={() => run(onDelete)}>
+                {sourceEntry
+                    ? "Remove source"
+                    : node.name.endsWith(".md")
+                      ? "Delete note"
+                      : "Delete file"}
+            </FileContextMenuItem>
+        </div>
+    );
+}
+
+function FileContextMenuItem({
+    children,
+    disabled = false,
+    onSelect,
+}: {
+    children: string;
+    disabled?: boolean;
+    onSelect: () => void;
+}) {
+    return (
+        <button
+            type="button"
+            className={cn(
+                "flex w-full items-center rounded-sm px-2 py-1 text-left text-xs outline-none hover:bg-accent disabled:pointer-events-none disabled:opacity-50",
+            )}
+            disabled={disabled}
+            onClick={onSelect}
+        >
+            {children}
+        </button>
+    );
+}
+
 function FileTree({
     workspaceName,
     tree,
     activeNotePath,
     onSelect,
     getSourceEntry,
-    onDeleteSource,
+    onFileContextMenu,
 }: {
     workspaceName: string;
     tree: FileNode[];
     activeNotePath: string | null;
     onSelect: (path: string) => void;
     getSourceEntry: (fileName: string) => SourceEntry | undefined;
-    onDeleteSource: (fileName: string) => void;
+    onFileContextMenu: (event: ReactMouseEvent, node: FileNode) => void;
 }) {
     return (
         <div className="flex-1 overflow-y-auto px-2 pb-3">
@@ -318,7 +562,7 @@ function FileTree({
                     selectedPath={activeNotePath}
                     onSelect={onSelect}
                     getSourceEntry={getSourceEntry}
-                    onDeleteSource={onDeleteSource}
+                    onFileContextMenu={onFileContextMenu}
                 />
             ))}
         </div>

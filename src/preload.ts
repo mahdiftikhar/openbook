@@ -9,6 +9,8 @@ contextBridge.exposeInMainWorld("electron", {
         clear: () => ipcRenderer.invoke("workspace:clear"),
         listFiles: (workspacePath: string) =>
             ipcRenderer.invoke("workspace:list-files", workspacePath),
+        revealFile: (filePath: string) =>
+            ipcRenderer.invoke("workspace:reveal-file", filePath),
     },
     notes: {
         create: (workspacePath: string) =>
@@ -28,6 +30,13 @@ contextBridge.exposeInMainWorld("electron", {
             ipcRenderer.invoke("sources:add-pdf", workspacePath),
         remove: (workspacePath: string, fileName: string) =>
             ipcRenderer.invoke("sources:remove", workspacePath, fileName),
+        rename: (workspacePath: string, oldFileName: string, newBaseName: string) =>
+            ipcRenderer.invoke(
+                "sources:rename",
+                workspacePath,
+                oldFileName,
+                newBaseName,
+            ),
         open: (filePath: string) =>
             ipcRenderer.invoke("sources:open", filePath),
         readFile: (filePath: string) =>

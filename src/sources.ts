@@ -168,6 +168,55 @@ function removeSource(workspacePath: string, fileName: string): boolean {
     return true;
 }
 
+function renameSource(
+    workspacePath: string,
+    oldFileName: string,
+    newBaseName: string,
+): SourceEntry | null {
+    const index = readIndex(workspacePath);
+    const entry = index[oldFileName];
+    if (!entry) return null;
+
+    const baseName = newBaseName
+        .trim()
+        .replace(/\.pdf$/i, "")
+        .replace(/[\\/]/g, "-");
+    if (!baseName) return null;
+
+    const requestedFileName = `${baseName}.pdf`;
+    if (requestedFileName === oldFileName) return entry;
+
+    const sourcesDir = getSourcesDir(workspacePath);
+    const newFileName = uniqueName(sourcesDir, baseName, ".pdf");
+    if (newFileName === oldFileName) return entry;
+
+    const oldPdfPath = path.join(sourcesDir, oldFileName);
+    const newPdfPath = path.join(sourcesDir, newFileName);
+    if (!fs.existsSync(oldPdfPath)) return null;
+
+    fs.renameSync(oldPdfPath, newPdfPath);
+
+    const sidecars = [
+        [
+            getTextSidecarPath(workspacePath, oldFileName),
+            getTextSidecarPath(workspacePath, newFileName),
+        ],
+        [
+            getPageTextSidecarPath(workspacePath, oldFileName),
+            getPageTextSidecarPath(workspacePath, newFileName),
+        ],
+    ];
+    for (const [oldPath, newPath] of sidecars) {
+        if (fs.existsSync(oldPath)) fs.renameSync(oldPath, newPath);
+    }
+
+    const renamed = { ...entry, fileName: newFileName };
+    delete index[oldFileName];
+    index[newFileName] = renamed;
+    writeIndex(workspacePath, index);
+    return renamed;
+}
+
 export function registerSourcesHandlers(): void {
     ipcMain.handle("sources:list", (_event, workspacePath: string) => {
         return Object.values(readIndex(workspacePath));
@@ -199,6 +248,18 @@ export function registerSourcesHandlers(): void {
         "sources:remove",
         async (_event, workspacePath: string, fileName: string) => {
             return removeSource(workspacePath, fileName);
+        },
+    );
+
+    ipcMain.handle(
+        "sources:rename",
+        async (
+            _event,
+            workspacePath: string,
+            oldFileName: string,
+            newBaseName: string,
+        ) => {
+            return renameSource(workspacePath, oldFileName, newBaseName);
         },
     );
 }

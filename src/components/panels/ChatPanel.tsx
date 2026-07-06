@@ -2,8 +2,10 @@ import {
     useEffect,
     useRef,
     useState,
+    type Dispatch,
     type ReactNode,
     type RefObject,
+    type SetStateAction,
 } from "react";
 import {
     BookOpen,
@@ -38,14 +40,17 @@ type Message = {
 export function ChatPanel({
     workspacePath,
     sourcesRefreshKey,
+    selectedSourceNames,
+    onSelectedSourceNamesChange,
     onOpenCitation,
 }: {
     workspacePath: string;
     sourcesRefreshKey: number;
+    selectedSourceNames: string[];
+    onSelectedSourceNamesChange: Dispatch<SetStateAction<string[]>>;
     onOpenCitation: (citation: ChatCitation) => void;
 }) {
     const [sources, setSources] = useState<SourceEntry[]>([]);
-    const [selectedSourceNames, setSelectedSourceNames] = useState<string[]>([]);
     const [messages, setMessages] = useState<Message[]>([]);
     const [draft, setDraft] = useState("");
     const [streaming, setStreaming] = useState(false);
@@ -63,7 +68,7 @@ export function ChatPanel({
             const readyNames = entries
                 .filter((entry) => entry.status === "ready")
                 .map((entry) => entry.fileName);
-            setSelectedSourceNames((current) =>
+            onSelectedSourceNamesChange((current) =>
                 current.filter((fileName) => readyNames.includes(fileName)),
             );
         });
@@ -71,7 +76,7 @@ export function ChatPanel({
         return () => {
             active = false;
         };
-    }, [workspacePath, sourcesRefreshKey]);
+    }, [workspacePath, sourcesRefreshKey, onSelectedSourceNamesChange]);
 
     useEffect(() => {
         const unsubscribe = window.electron.chat.onStream((event) => {
@@ -154,7 +159,7 @@ export function ChatPanel({
     );
 
     const toggleSource = (fileName: string) => {
-        setSelectedSourceNames((current) => {
+        onSelectedSourceNamesChange((current) => {
             if (current.includes(fileName)) {
                 return current.filter((selectedName) => selectedName !== fileName);
             }
@@ -236,7 +241,7 @@ export function ChatPanel({
                 selectedSources={selectedSources}
                 streaming={streaming}
                 onCancel={handleCancel}
-                onClearSources={() => setSelectedSourceNames([])}
+                onClearSources={() => onSelectedSourceNamesChange([])}
                 onDraftChange={setDraft}
                 onSend={send}
                 onToggleSource={toggleSource}

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, shell } from "electron";
 import path from "node:path";
 import fs from "node:fs";
 import { REQUIRED_WORKSPACE_DIRS, WORKSPACE_DIRS } from "./workspaceLayout";
@@ -135,6 +135,10 @@ export function registerWorkspaceHandlers(): void {
 
     ipcMain.handle("workspace:list-files", (_event, workspacePath: string) => {
         return readDirectoryTree(workspacePath);
+    });
+
+    ipcMain.handle("workspace:reveal-file", (_event, filePath: string) => {
+        if (fs.existsSync(filePath)) shell.showItemInFolder(filePath);
     });
 
     ipcMain.handle("workspace:clear", () => {

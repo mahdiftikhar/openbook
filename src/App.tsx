@@ -45,6 +45,7 @@ export function App() {
     const [checkingWorkspace, setCheckingWorkspace] = useState(true);
     const [activeNotePath, setActiveNotePath] = useState<string | null>(null);
     const [activePdfPage, setActivePdfPage] = useState<number | null>(null);
+    const [selectedSourceNames, setSelectedSourceNames] = useState<string[]>([]);
     const [notesVersion, setNotesVersion] = useState(0);
 
     useEffect(() => {
@@ -92,6 +93,7 @@ export function App() {
         setWorkspacePath(null);
         setActiveNotePath(null);
         setActivePdfPage(null);
+        setSelectedSourceNames([]);
     };
 
     const handleOpenFile = (filePath: string | null) => {
@@ -140,8 +142,10 @@ export function App() {
                             workspacePath={workspacePath}
                             workspaceName={workspaceName}
                             activeNotePath={activeNotePath}
+                            selectedSourceNames={selectedSourceNames}
                             refreshKey={notesVersion}
                             onOpenNote={handleOpenFile}
+                            onSelectedSourceNamesChange={setSelectedSourceNames}
                             onNotesChanged={() => setNotesVersion((v) => v + 1)}
                         />
                     </Panel>
@@ -156,6 +160,8 @@ export function App() {
                         <ChatPanel
                             workspacePath={workspacePath}
                             sourcesRefreshKey={notesVersion}
+                            selectedSourceNames={selectedSourceNames}
+                            onSelectedSourceNamesChange={setSelectedSourceNames}
                             onOpenCitation={handleOpenCitation}
                         />
                     </Panel>

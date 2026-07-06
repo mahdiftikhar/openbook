@@ -148,13 +148,15 @@ function PdfToolbar({
     onClose: () => void;
 }) {
     return (
-        <PanelTabBar
-            className="bg-surface-reference-header"
-            activeTabClassName="border-b-surface-reference bg-surface-reference"
-            tabs={[{ id: filePath, title: fileName }]}
-            activeTabId={filePath}
-            actions={
-                <>
+        <>
+            <PanelTabBar
+                className="bg-surface-reference-header"
+                activeTabClassName="border-b-surface-reference bg-surface-reference"
+                tabs={[{ id: filePath, title: fileName }]}
+                activeTabId={filePath}
+            />
+            <div className="flex h-9 shrink-0 items-center justify-end border-b bg-surface-reference-header px-2">
+                <div className="flex items-center gap-1">
                     <ZoomOutButton scale={scale} onZoomOut={onZoomOut} />
                     <ZoomIndicator scale={scale} />
                     <ZoomInButton scale={scale} onZoomIn={onZoomIn} />
@@ -171,9 +173,9 @@ function PdfToolbar({
                     />
                     <ToolbarDivider />
                     <ClosePdfButton onClose={onClose} />
-                </>
-            }
-        />
+                </div>
+            </div>
+        </>
     );
 }
 

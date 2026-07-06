@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
-import { FileText, Trash2 } from "lucide-react";
+import { FileText } from "lucide-react";
 
 import { PanelTabBar } from "@/components/panels/PanelTabBar";
-import { Button } from "@/components/ui/button";
 
 const AUTOSAVE_DELAY = 600;
 
@@ -26,7 +25,6 @@ export function NotePanel({
     const [content, setContent] = useState("");
     const [loaded, setLoaded] = useState(false);
     const [dirty, setDirty] = useState(false);
-    const [saving, setSaving] = useState(false);
     const editorRef = useRef<HTMLTextAreaElement | null>(null);
     const currentPathRef = useRef<string | null>(notePath);
 
@@ -67,12 +65,10 @@ export function NotePanel({
     useEffect(() => {
         if (!loaded || !notePath) return;
         if (!dirty) return;
-        setSaving(true);
         const timer = setTimeout(async () => {
             const path = currentPathRef.current;
             if (path) await performSave(content, path);
             setDirty(false);
-            setSaving(false);
         }, AUTOSAVE_DELAY);
         return () => clearTimeout(timer);
     }, [content, dirty, loaded, notePath]);
@@ -81,18 +77,13 @@ export function NotePanel({
         if (!dirty) return;
         const path = currentPathRef.current;
         if (!path) return;
-        setSaving(true);
         await performSave(content, path);
         setDirty(false);
-        setSaving(false);
     };
 
-    const handleDelete = async () => {
-        if (!notePath) return;
-        const ok = await window.electron.notes.delete(notePath);
-        if (!ok) return;
+    const handleClose = async () => {
+        await handleBlurSave();
         onChangeNotePath(null);
-        onNotesChanged();
     };
 
     if (!notePath) {
@@ -104,9 +95,8 @@ export function NotePanel({
         <section className="flex h-full flex-col bg-surface-reference">
             <NoteHeader
                 fileName={fileName}
-                saving={saving}
                 dirty={dirty}
-                onDelete={handleDelete}
+                onClose={handleClose}
             />
             <NoteEditor
                 editorRef={editorRef}
@@ -133,44 +123,21 @@ function EmptyNoteState() {
 
 function NoteHeader({
     fileName,
-    saving,
     dirty,
-    onDelete,
+    onClose,
 }: {
     fileName: string;
-    saving: boolean;
     dirty: boolean;
-    onDelete: () => void;
+    onClose: () => void;
 }) {
     return (
         <PanelTabBar
             className="bg-surface-reference-header"
             activeTabClassName="border-b-surface-reference bg-surface-reference"
-            tabs={[{ id: fileName, title: fileName, dirty }]}
+            tabs={[{ id: fileName, title: fileName, dirty, closable: true }]}
             activeTabId={fileName}
-            actions={
-                <>
-                    <SaveStatus saving={saving} dirty={dirty} />
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-7"
-                        aria-label="Delete note"
-                        onClick={onDelete}
-                    >
-                        <Trash2 className="size-4" />
-                    </Button>
-                </>
-            }
+            onCloseTab={onClose}
         />
-    );
-}
-
-function SaveStatus({ saving, dirty }: { saving: boolean; dirty: boolean }) {
-    return (
-        <span className="mr-1 text-xs text-muted-foreground">
-            {saving ? "Saving..." : dirty ? "Unsaved" : "Saved"}
-        </span>
     );
 }
 
