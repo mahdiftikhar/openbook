@@ -13,8 +13,8 @@ The app is currently in **v0.1.0 foundation work**.
 | Web articles     | Missing        | No URL ingestion, fetch, markdown conversion, or indexing yet.                                                                                                       |
 | YouTube          | Missing        | No transcript ingestion yet.                                                                                                                                         |
 | Indexing/RAG     | Missing        | Extracted text exists for PDFs, but there is no retrieval index, embeddings, or RAG pipeline yet.                                                                    |
-| Chat             | Mock only      | Chat UI exists with static/local messages only; no LLM, streaming, citations, or source selection.                                                                   |
-| File watcher     | Missing        | No workspace filesystem watcher, re-indexing on external changes, or renderer notifications yet.                                                                     |
+| Chat             | Prototype      | Chat can query selected PDF sources with simple keyword retrieval, optional DeepSeek streaming, local fallback responses, cancellation, and clickable citations. This is intentionally temporary and needs a broader redesign. |
+| File watcher     | Deferred       | Not needed for the current foundation because the app mostly owns writes through its own UI. Add later when external edits, manual file drops, and automatic re-indexing become core behavior. |
 | Settings         | Mostly missing | Workspace switching exists, but no settings UI for LLM provider, API keys, model, or embeddings.                                                                     |
 | v0.2.0+ features | Missing        | Persistent chats, chat management, markdown preview/highlighting, source enrichment, agent tools, tagging, search, backlinks, and templates are not implemented yet. |
 
@@ -56,13 +56,19 @@ The app is currently in **v0.1.0 foundation work**.
 
 ### Chat with RAG
 
+Current status: prototype only. The current implementation is useful for proving the loop from selected PDFs to retrieved context to cited answers, but it is not the final chat architecture.
+
 - **Source selection for chat.** User selects one or more sources to use as context for a question.
 - **Ask question.** User types a question. The selected sources are used as retrieval context.
 - **Streaming response.** The LLM response streams token-by-token into the chat panel.
 - **Citations.** When the LLM references content from a source, the citation is displayed inline (e.g., `[1]`) and clickable — it navigates to the relevant location in the source.
 - **Conversation history.** The chat maintains a scrollable history of messages within a session.
+- **Temporary retrieval.** Current retrieval is simple keyword chunk ranking over selected PDFs, not a real embedding/vector index.
+- **Temporary chat UI.** The current composer and source picker are intentionally simple. They should be replaced later with a keyboard-friendly interface that supports `/` commands, `@` source/tool mentions, richer formatting, notes as context, and prompts without explicit source selection.
 
 ### File Watcher
+
+Current status: deferred. A file watcher is not required for the current foundation because openbook mostly creates, edits, imports, and deletes files through its own UI. It becomes important when openbook needs to reliably track external filesystem changes.
 
 - **Monitor workspace.** Watch the `notes/` and `sources/` directories for external changes (user edits a file outside the app, adds a file manually, deletes a file).
 - **Re-index on change.** When a source file changes externally, trigger re-extraction and re-indexing.

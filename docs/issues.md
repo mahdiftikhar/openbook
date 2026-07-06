@@ -22,9 +22,21 @@
 
 - [ ] No tab support — only one note open at a time.
 
+### Chat Interface
+
+- [ ] Chat interface should be keyboard friendly.
+- [ ] Remake chat input with `/` and `@` commands for adding sources and tools.
+- [ ] Chat interface needs more width by default.
+- [ ] Prompt input and agent responses should support rich text formatting.
+- [ ] Sources should show as tabs.
+- [ ] Prompts without explicit sources should be possible; the agent should search all available sources to find relevant context.
+- [ ] User notes should be addable to chat context.
+- [ ] LLM output quality is poor.
+
 ### PDF Viewer
 
 - [ ] PDF viewer is page-by-page only — add continuous scrolling.
 - [ ] PDF viewer does not support text selection.
 - [ ] PDF viewer does not support text highlighting/annotations.
+- [ ] Citation back-references to source files should highlight the cited region or show an explicit visual indicator pointing to the exact location, not just the page.
 - [ ] PDF viewer needs an "Open in native app" fallback, likely in a right-click/context menu.
