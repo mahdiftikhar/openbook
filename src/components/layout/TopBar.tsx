@@ -24,8 +24,8 @@ export function TopBar({
     workspaceName,
     filesOpen,
     onToggleFiles,
-    chatOpen,
-    onToggleChat,
+    notesOpen,
+    onToggleNotes,
     dark,
     onToggleDark,
     onSwitchWorkspace,
@@ -34,8 +34,8 @@ export function TopBar({
     workspaceName: string;
     filesOpen: boolean;
     onToggleFiles: () => void;
-    chatOpen: boolean;
-    onToggleChat: () => void;
+    notesOpen: boolean;
+    onToggleNotes: () => void;
     dark: boolean;
     onToggleDark: () => void;
     onSwitchWorkspace: () => void;
@@ -59,7 +59,7 @@ export function TopBar({
 
             <div className="ml-auto flex items-center gap-1">
                 <ThemeToggle dark={dark} onToggle={onToggleDark} />
-                <ChatPanelToggle open={chatOpen} onToggle={onToggleChat} />
+                <NotesPanelToggle open={notesOpen} onToggle={onToggleNotes} />
             </div>
         </header>
     );
@@ -153,7 +153,7 @@ function ThemeToggle({
     );
 }
 
-function ChatPanelToggle({
+function NotesPanelToggle({
     open,
     onToggle,
 }: {
@@ -165,7 +165,7 @@ function ChatPanelToggle({
             variant="ghost"
             size="icon"
             className="no-drag size-7"
-            aria-label={open ? "Hide chat panel" : "Show chat panel"}
+            aria-label={open ? "Hide notes panel" : "Show notes panel"}
             onClick={onToggle}
         >
             {open ? (

@@ -19,9 +19,9 @@ function ResizeHandle() {
 
 export function App() {
     const filePanelRef = usePanelRef();
-    const chatPanelRef = usePanelRef();
+    const notePanelRef = usePanelRef();
     const [filesOpen, setFilesOpen] = useState(true);
-    const [chatOpen, setChatOpen] = useState(true);
+    const [notesOpen, setNotesOpen] = useState(true);
     const [dark, setDark] = useState(true);
     const [workspacePath, setWorkspacePath] = useState<string | null>(null);
     const [checkingWorkspace, setCheckingWorkspace] = useState(true);
@@ -87,8 +87,8 @@ export function App() {
                 workspaceName={workspaceName}
                 filesOpen={filesOpen}
                 onToggleFiles={() => togglePanel(filePanelRef)}
-                chatOpen={chatOpen}
-                onToggleChat={() => togglePanel(chatPanelRef)}
+                notesOpen={notesOpen}
+                onToggleNotes={() => togglePanel(notePanelRef)}
                 dark={dark}
                 onToggleDark={() => setDark((v) => !v)}
                 onSwitchWorkspace={handleSwitchWorkspace}
@@ -98,9 +98,9 @@ export function App() {
                 <Group orientation="horizontal" className="h-full w-full">
                     <Panel
                         panelRef={filePanelRef}
-                        defaultSize="20%"
-                        minSize="14%"
-                        maxSize="32%"
+                        defaultSize="16%"
+                        minSize="12%"
+                        maxSize="26%"
                         collapsible
                         collapsedSize="0%"
                         onResize={() =>
@@ -120,7 +120,32 @@ export function App() {
 
                     <ResizeHandle />
 
-                    <Panel minSize="30%" style={{ overflow: "hidden" }}>
+                    <Panel
+                        defaultSize="54%"
+                        minSize="40%"
+                        style={{ overflow: "hidden" }}
+                    >
+                        <ChatPanel
+                            workspacePath={workspacePath}
+                            sourcesRefreshKey={notesVersion}
+                            onOpenCitation={handleOpenCitation}
+                        />
+                    </Panel>
+
+                    <ResizeHandle />
+
+                    <Panel
+                        panelRef={notePanelRef}
+                        defaultSize="30%"
+                        minSize="20%"
+                        maxSize="44%"
+                        collapsible
+                        collapsedSize="0%"
+                        onResize={() =>
+                            setNotesOpen(!notePanelRef.current?.isCollapsed())
+                        }
+                        style={{ overflow: "hidden" }}
+                    >
                         {isPdf && activeNotePath ? (
                             <PdfViewer
                                 filePath={activeNotePath}
@@ -137,27 +162,6 @@ export function App() {
                                 }
                             />
                         )}
-                    </Panel>
-
-                    <ResizeHandle />
-
-                    <Panel
-                        panelRef={chatPanelRef}
-                        defaultSize="28%"
-                        minSize="20%"
-                        maxSize="42%"
-                        collapsible
-                        collapsedSize="0%"
-                        onResize={() =>
-                            setChatOpen(!chatPanelRef.current?.isCollapsed())
-                        }
-                        style={{ overflow: "hidden" }}
-                    >
-                        <ChatPanel
-                            workspacePath={workspacePath}
-                            sourcesRefreshKey={notesVersion}
-                            onOpenCitation={handleOpenCitation}
-                        />
                     </Panel>
                 </Group>
             </div>

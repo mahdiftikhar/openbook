@@ -221,10 +221,15 @@ export function ChatPanel({
 
     return (
         <aside className="flex h-full flex-col bg-background">
-            <ChatHeader selectedCount={selectedSources.length} />
+            <ChatHeader
+                readySources={readySources}
+                selectedSources={selectedSources}
+            />
             <MessageList
                 listRef={messageListRef}
                 messages={messages}
+                readySourceCount={readySources.length}
+                selectedSourceCount={selectedSources.length}
                 onOpenCitation={onOpenCitation}
             />
             <ChatComposer
@@ -243,16 +248,84 @@ export function ChatPanel({
     );
 }
 
-function ChatHeader({ selectedCount }: { selectedCount: number }) {
+function ChatHeader({
+    readySources,
+    selectedSources,
+}: {
+    readySources: SourceEntry[];
+    selectedSources: SourceEntry[];
+}) {
+    const selectedCount = selectedSources.length;
+
     return (
-        <div className="flex items-center gap-2 border-b px-3 py-2.5">
-            <Sparkles className="size-4 text-muted-foreground" />
-            <span className="text-sm font-medium">Assistant</span>
-            <span className="ml-auto text-xs text-muted-foreground">
-                {selectedCount === 1
-                    ? "1 source selected"
-                    : `${selectedCount} sources selected`}
+        <div className="border-b bg-card/40 px-4 py-3">
+            <div className="flex items-start gap-3">
+                <div className="rounded-xl border bg-background p-2 text-primary shadow-sm">
+                    <Sparkles className="size-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <h2 className="text-base font-semibold tracking-tight">
+                            Research Chat
+                        </h2>
+                        <span className="rounded-full border bg-background px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                            {formatSourceCount(selectedCount)}
+                        </span>
+                    </div>
+                    <p className="mt-0.5 text-xs leading-5 text-muted-foreground">
+                        Question, compare, and trace answers back to your sources.
+                    </p>
+                </div>
+            </div>
+            <SourceContextStrip
+                readySources={readySources}
+                selectedSources={selectedSources}
+            />
+        </div>
+    );
+}
+
+function SourceContextStrip({
+    readySources,
+    selectedSources,
+}: {
+    readySources: SourceEntry[];
+    selectedSources: SourceEntry[];
+}) {
+    if (selectedSources.length === 0) {
+        return (
+            <div className="mt-3 rounded-xl border border-dashed bg-background/60 px-3 py-2 text-xs text-muted-foreground">
+                {readySources.length === 0
+                    ? "Add a ready PDF source to ground the conversation."
+                    : "Choose sources below to ground the conversation."}
+            </div>
+        );
+    }
+
+    const visibleSources = selectedSources.slice(0, 4);
+    const extraCount = selectedSources.length - visibleSources.length;
+
+    return (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                Context
             </span>
+            {visibleSources.map((source) => (
+                <div
+                    key={source.fileName}
+                    className="min-w-0 max-w-48 rounded-full border bg-background px-2.5 py-1 text-xs shadow-sm"
+                    title={source.fileName}
+                >
+                    <span className="block truncate font-medium">
+                        {source.fileName}
+                    </span>
+                </div>
+            ))}
+            {extraCount > 0 && (
+                <span className="rounded-full border bg-background px-2.5 py-1 text-xs font-medium text-muted-foreground shadow-sm">
+                    +{extraCount} more
+                </span>
+            )}
         </div>
     );
 }
@@ -260,17 +333,24 @@ function ChatHeader({ selectedCount }: { selectedCount: number }) {
 function MessageList({
     listRef,
     messages,
+    readySourceCount,
+    selectedSourceCount,
     onOpenCitation,
 }: {
     listRef: RefObject<HTMLDivElement>;
     messages: Message[];
+    readySourceCount: number;
+    selectedSourceCount: number;
     onOpenCitation: (citation: ChatCitation) => void;
 }) {
     return (
-        <div ref={listRef} className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
-            <div className="mx-auto flex max-w-sm flex-col gap-3">
+        <div ref={listRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-5">
+            <div className="mx-auto flex max-w-4xl flex-col gap-4">
                 {messages.length === 0 ? (
-                    <EmptyChatState />
+                    <EmptyChatState
+                        readySourceCount={readySourceCount}
+                        selectedSourceCount={selectedSourceCount}
+                    />
                 ) : (
                     messages.map((message) => (
                         <MessageBubble
@@ -285,11 +365,49 @@ function MessageList({
     );
 }
 
-function EmptyChatState() {
+function EmptyChatState({
+    readySourceCount,
+    selectedSourceCount,
+}: {
+    readySourceCount: number;
+    selectedSourceCount: number;
+}) {
+    const prompts = [
+        "Summarize the selected sources into working notes.",
+        "Compare the strongest claims across these sources.",
+        "Find evidence I should cite before writing.",
+        "Explain the section that matters most here.",
+    ];
+
     return (
-        <div className="rounded-lg border border-dashed px-3 py-4 text-center text-xs text-muted-foreground">
-            <BookOpen className="mx-auto mb-2 size-5 opacity-50" />
-            Select sources, then ask a question about them.
+        <div className="rounded-2xl border bg-card p-5 shadow-sm">
+            <div className="flex items-start gap-3">
+                <div className="rounded-xl bg-primary/10 p-2 text-primary">
+                    <BookOpen className="size-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                    <h3 className="text-base font-semibold tracking-tight">
+                        Start with a research question
+                    </h3>
+                    <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                        Chat is part of the workspace. Use it to read across PDFs,
+                        test ideas, and keep every answer tied to a source.
+                    </p>
+                </div>
+            </div>
+            <div className="mt-5 grid gap-2 sm:grid-cols-2">
+                {prompts.map((prompt) => (
+                    <div
+                        key={prompt}
+                        className="rounded-xl border bg-background/70 px-3 py-2 text-sm leading-5 text-foreground"
+                    >
+                        {prompt}
+                    </div>
+                ))}
+            </div>
+            <p className="mt-4 rounded-xl border border-dashed bg-background/60 px-3 py-2 text-xs text-muted-foreground">
+                {formatEmptyContextMessage(readySourceCount, selectedSourceCount)}
+            </p>
         </div>
     );
 }
@@ -305,25 +423,85 @@ function MessageBubble({
 
     return (
         <div className={cn("flex", isUser ? "justify-end" : "justify-start")}>
-            <div
-                className={cn(
-                    "max-w-[85%] whitespace-pre-wrap rounded-lg px-3 py-2 text-sm",
-                    isUser
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-foreground",
-                    message.status === "error" && "text-destructive",
-                )}
-            >
-                {message.content ? (
-                    <CitationText
-                        content={message.content}
-                        citations={message.citations ?? []}
+            <div className={cn(isUser ? "max-w-[78%]" : "w-full")}>
+                <div
+                    className={cn(
+                        "mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground",
+                        isUser && "text-right",
+                    )}
+                >
+                    {isUser ? "You" : "Answer"}
+                </div>
+                <div
+                    className={cn(
+                        "whitespace-pre-wrap rounded-2xl px-4 py-3 text-sm leading-6 shadow-sm",
+                        isUser
+                            ? "rounded-tr-sm bg-primary text-primary-foreground"
+                            : "rounded-tl-sm border bg-card text-foreground",
+                        message.status === "error" &&
+                            "border-destructive/30 bg-destructive/10 text-destructive",
+                    )}
+                >
+                    {message.content ? (
+                        <CitationText
+                            content={message.content}
+                            citations={message.citations ?? []}
+                            onOpenCitation={onOpenCitation}
+                        />
+                    ) : (
+                        <span className="text-muted-foreground">
+                            Reading selected sources...
+                        </span>
+                    )}
+                </div>
+                {!isUser && message.citations && message.citations.length > 0 && (
+                    <CitationCards
+                        citations={message.citations}
                         onOpenCitation={onOpenCitation}
                     />
-                ) : (
-                    <span className="text-muted-foreground">Thinking...</span>
                 )}
             </div>
+        </div>
+    );
+}
+
+function CitationCards({
+    citations,
+    onOpenCitation,
+}: {
+    citations: ChatCitation[];
+    onOpenCitation: (citation: ChatCitation) => void;
+}) {
+    const visibleCitations = citations.slice(0, 4);
+    const extraCount = citations.length - visibleCitations.length;
+
+    return (
+        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+            {visibleCitations.map((citation) => (
+                <button
+                    key={`${citation.fileName}-${citation.page}-${citation.id}`}
+                    type="button"
+                    className="min-w-0 rounded-xl border bg-background/70 px-3 py-2 text-left text-xs shadow-sm transition hover:border-primary/40 hover:bg-primary/5"
+                    onClick={() => onOpenCitation(citation)}
+                >
+                    <span className="flex items-center gap-2">
+                        <span className="min-w-0 flex-1 truncate font-medium text-foreground">
+                            {citation.fileName}
+                        </span>
+                        <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+                            p. {citation.page}
+                        </span>
+                    </span>
+                    <span className="mt-1 block max-h-10 overflow-hidden leading-5 text-muted-foreground">
+                        {citation.excerpt}
+                    </span>
+                </button>
+            ))}
+            {extraCount > 0 && (
+                <div className="rounded-xl border border-dashed bg-background/50 px-3 py-2 text-xs text-muted-foreground">
+                    +{extraCount} more sources used in this answer
+                </div>
+            )}
         </div>
     );
 }
@@ -357,7 +535,7 @@ function CitationText({
                     key={`${match.index}-${marker}`}
                     type="button"
                     title={`${citation.fileName}, page ${citation.page}`}
-                    className="mx-0.5 rounded bg-primary/10 px-1 text-xs font-medium text-primary hover:bg-primary/20"
+                    className="mx-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full border border-primary/20 bg-primary/10 px-1.5 align-baseline text-[11px] font-semibold text-primary hover:border-primary/40 hover:bg-primary/20"
                     onClick={() => onOpenCitation(citation)}
                 >
                     {marker}
@@ -376,6 +554,26 @@ function CitationText({
     }
 
     return <>{parts}</>;
+}
+
+function formatSourceCount(count: number): string {
+    if (count === 0) return "No sources selected";
+    if (count === 1) return "1 source selected";
+    return `${count} sources selected`;
+}
+
+function formatEmptyContextMessage(
+    readySourceCount: number,
+    selectedSourceCount: number,
+): string {
+    if (readySourceCount === 0) return "Add a PDF source before starting.";
+    if (selectedSourceCount === 0) {
+        return "Select one or more ready sources below to start a grounded conversation.";
+    }
+    if (selectedSourceCount === 1) {
+        return "1 source is selected. Ask a question to begin.";
+    }
+    return `${selectedSourceCount} sources are selected. Ask a question to begin.`;
 }
 
 function ChatComposer({
