@@ -99,7 +99,7 @@ export function PdfViewer({
     const fileName = filePath.split(/[/\\]/).pop() ?? filePath;
 
     return (
-        <section className="flex h-full flex-col bg-background">
+        <section className="flex h-full flex-col bg-surface-reference">
             <PdfToolbar
                 fileName={fileName}
                 numPages={numPages}
@@ -144,7 +144,7 @@ function PdfToolbar({
     onClose: () => void;
 }) {
     return (
-        <div className="flex items-center justify-between border-b px-4 py-2">
+        <div className="flex items-center justify-between border-b bg-surface-reference-header px-4 py-2">
             <PdfTitle fileName={fileName} numPages={numPages} />
             <div className="flex items-center gap-1">
                 <ZoomOutButton scale={scale} onZoomOut={onZoomOut} />
@@ -319,7 +319,7 @@ function PdfCanvasArea({
     error: string | null;
 }) {
     return (
-        <div className="min-h-0 flex-1 overflow-auto bg-muted/50">
+        <div className="min-h-0 flex-1 overflow-auto bg-surface-pdf-canvas">
             {loading && <PdfLoadingMessage />}
             {error && <PdfErrorMessage error={error} />}
             <canvas

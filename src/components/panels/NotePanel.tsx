@@ -109,7 +109,7 @@ export function NotePanel({
         .join(" / ");
 
     return (
-        <section className="flex h-full flex-col bg-background">
+        <section className="flex h-full flex-col bg-surface-reference">
             <NoteHeader
                 fileName={fileName}
                 relativeDir={relativeDir}
@@ -133,7 +133,7 @@ export function NotePanel({
 
 function EmptyNoteState() {
     return (
-        <section className="flex h-full flex-col items-center justify-center bg-background text-muted-foreground">
+        <section className="flex h-full flex-col items-center justify-center bg-surface-reference text-muted-foreground">
             <FileText className="size-8 opacity-40" />
             <p className="mt-3 text-sm">Select a note or create a new one.</p>
         </section>
@@ -154,7 +154,7 @@ function NoteHeader({
     onDelete: () => void;
 }) {
     return (
-        <div className="flex items-center justify-between border-b px-4 py-2.5">
+        <div className="flex items-center justify-between border-b bg-surface-reference-header px-4 py-2.5">
             <div className="flex min-w-0 flex-col">
                 <span className="truncate text-sm font-medium">{fileName}</span>
                 <span className="truncate text-xs text-muted-foreground">

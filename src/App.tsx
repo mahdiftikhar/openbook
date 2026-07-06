@@ -7,6 +7,17 @@ import { NotePanel } from "@/components/panels/NotePanel";
 import { PdfViewer } from "@/components/panels/PdfViewer";
 import { ChatPanel } from "@/components/panels/ChatPanel";
 import { Onboarding } from "@/components/Onboarding";
+import {
+    DEFAULT_THEME_ID,
+    DEFAULT_THEME_MODE,
+    THEME_MODE_STORAGE_KEY,
+    THEME_STORAGE_KEY,
+    THEMES,
+    isThemeId,
+    isThemeMode,
+    type ThemeId,
+    type ThemeMode,
+} from "@/themes";
 
 function ResizeHandle() {
     return (
@@ -22,7 +33,14 @@ export function App() {
     const notePanelRef = usePanelRef();
     const [filesOpen, setFilesOpen] = useState(true);
     const [notesOpen, setNotesOpen] = useState(true);
-    const [dark, setDark] = useState(true);
+    const [themeId, setThemeId] = useState<ThemeId>(() => {
+        const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
+        return isThemeId(storedTheme) ? storedTheme : DEFAULT_THEME_ID;
+    });
+    const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
+        const storedMode = window.localStorage.getItem(THEME_MODE_STORAGE_KEY);
+        return isThemeMode(storedMode) ? storedMode : DEFAULT_THEME_MODE;
+    });
     const [workspacePath, setWorkspacePath] = useState<string | null>(null);
     const [checkingWorkspace, setCheckingWorkspace] = useState(true);
     const [activeNotePath, setActiveNotePath] = useState<string | null>(null);
@@ -30,8 +48,16 @@ export function App() {
     const [notesVersion, setNotesVersion] = useState(0);
 
     useEffect(() => {
-        document.documentElement.classList.toggle("dark", dark);
-    }, [dark]);
+        const root = document.documentElement;
+
+        root.classList.toggle("dark", themeMode === "dark");
+        for (const theme of THEMES) {
+            root.classList.toggle(theme.className, theme.id === themeId);
+        }
+
+        window.localStorage.setItem(THEME_STORAGE_KEY, themeId);
+        window.localStorage.setItem(THEME_MODE_STORAGE_KEY, themeMode);
+    }, [themeId, themeMode]);
 
     useEffect(() => {
         window.electron.workspace.getPath().then((savedPath) => {
@@ -82,15 +108,17 @@ export function App() {
     const isPdf = activeNotePath?.endsWith(".pdf");
 
     return (
-        <div className="flex h-screen w-screen flex-col overflow-hidden bg-background text-foreground">
+        <div className="flex h-screen w-screen flex-col overflow-hidden bg-surface-shell text-foreground">
             <TopBar
                 workspaceName={workspaceName}
                 filesOpen={filesOpen}
                 onToggleFiles={() => togglePanel(filePanelRef)}
                 notesOpen={notesOpen}
                 onToggleNotes={() => togglePanel(notePanelRef)}
-                dark={dark}
-                onToggleDark={() => setDark((v) => !v)}
+                themeId={themeId}
+                themeMode={themeMode}
+                onThemeChange={setThemeId}
+                onThemeModeChange={setThemeMode}
                 onSwitchWorkspace={handleSwitchWorkspace}
                 onCloseWorkspace={handleCloseWorkspace}
             />

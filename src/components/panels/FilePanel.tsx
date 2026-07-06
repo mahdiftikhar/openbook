@@ -85,7 +85,7 @@ export function FilePanel({
     };
 
     return (
-        <aside className="flex h-full flex-col bg-sidebar">
+        <aside className="flex h-full flex-col bg-surface-files">
             <FilePanelHeader onAddPdf={handleAddPdf} onNewNote={handleNew} />
             <FileSearchInput />
             <FileTree
@@ -281,7 +281,7 @@ function FilePanelHeader({
 function FileSearchInput() {
     return (
         <div className="px-3 py-2">
-            <div className="flex items-center gap-2 rounded-md border border-input bg-background px-2">
+            <div className="flex items-center gap-2 rounded-md border border-border bg-accent/60 px-2">
                 <Search className="size-3.5 text-muted-foreground" />
                 <input
                     placeholder="Search files..."
