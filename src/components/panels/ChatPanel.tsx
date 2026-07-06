@@ -14,6 +14,7 @@ import {
     X,
 } from "lucide-react";
 
+import { PanelTabBar } from "@/components/panels/PanelTabBar";
 import { Button } from "@/components/ui/button";
 import {
     DropdownMenu,
@@ -220,10 +221,7 @@ export function ChatPanel({
 
     return (
         <aside className="flex h-full flex-col bg-surface-chat">
-            <ChatHeader
-                readySources={readySources}
-                selectedSources={selectedSources}
-            />
+            <ChatHeader selectedSources={selectedSources} />
             <MessageList
                 listRef={messageListRef}
                 messages={messages}
@@ -248,55 +246,24 @@ export function ChatPanel({
 }
 
 function ChatHeader({
-    readySources,
     selectedSources,
 }: {
-    readySources: SourceEntry[];
     selectedSources: SourceEntry[];
 }) {
     const selectedCount = selectedSources.length;
 
     return (
-        <div className="border-b bg-surface-chat-header px-4 py-2">
-            <div className="flex min-w-0 items-center gap-2">
-                <h2 className="text-sm font-semibold tracking-tight">Research Chat</h2>
-                <span className="text-xs text-muted-foreground">·</span>
+        <PanelTabBar
+            className="bg-surface-chat-header"
+            activeTabClassName="border-b-surface-chat bg-surface-chat"
+            tabs={[{ id: "research-chat", title: "Research Chat" }]}
+            activeTabId="research-chat"
+            actions={
                 <span className="truncate text-xs text-muted-foreground">
                     {formatSourceCount(selectedCount)}
                 </span>
-            </div>
-            <SourceContextStrip
-                readySources={readySources}
-                selectedSources={selectedSources}
-            />
-        </div>
-    );
-}
-
-function SourceContextStrip({
-    readySources,
-    selectedSources,
-}: {
-    readySources: SourceEntry[];
-    selectedSources: SourceEntry[];
-}) {
-    if (selectedSources.length === 0) {
-        return (
-            <div className="mt-1 truncate text-xs text-muted-foreground">
-                {readySources.length === 0
-                    ? "Add a ready PDF source to ground the conversation"
-                    : "Choose sources below to ground the conversation"}
-            </div>
-        );
-    }
-
-    return (
-        <div
-            className="mt-1 truncate text-xs text-muted-foreground"
-            title={formatSelectedSources(selectedSources)}
-        >
-            {formatSelectedSources(selectedSources)}
-        </div>
+            }
+        />
     );
 }
 

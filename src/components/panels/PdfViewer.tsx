@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import * as pdfjsLib from "pdfjs-dist";
 import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
+import { PanelTabBar } from "@/components/panels/PanelTabBar";
 import { Button } from "@/components/ui/button";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
@@ -101,6 +102,7 @@ export function PdfViewer({
     return (
         <section className="flex h-full flex-col bg-surface-reference">
             <PdfToolbar
+                filePath={filePath}
                 fileName={fileName}
                 numPages={numPages}
                 currentPage={currentPage}
@@ -123,6 +125,7 @@ export function PdfViewer({
 }
 
 function PdfToolbar({
+    filePath,
     fileName,
     numPages,
     currentPage,
@@ -133,6 +136,7 @@ function PdfToolbar({
     onNextPage,
     onClose,
 }: {
+    filePath: string;
     fileName: string;
     numPages: number;
     currentPage: number;
@@ -144,46 +148,32 @@ function PdfToolbar({
     onClose: () => void;
 }) {
     return (
-        <div className="flex items-center justify-between border-b bg-surface-reference-header px-4 py-2">
-            <PdfTitle fileName={fileName} numPages={numPages} />
-            <div className="flex items-center gap-1">
-                <ZoomOutButton scale={scale} onZoomOut={onZoomOut} />
-                <ZoomIndicator scale={scale} />
-                <ZoomInButton scale={scale} onZoomIn={onZoomIn} />
-                <ToolbarDivider />
-                <PreviousPageButton
-                    currentPage={currentPage}
-                    onPreviousPage={onPreviousPage}
-                />
-                <PageIndicator currentPage={currentPage} numPages={numPages} />
-                <NextPageButton
-                    currentPage={currentPage}
-                    numPages={numPages}
-                    onNextPage={onNextPage}
-                />
-                <ToolbarDivider />
-                <ClosePdfButton onClose={onClose} />
-            </div>
-        </div>
-    );
-}
-
-function PdfTitle({
-    fileName,
-    numPages,
-}: {
-    fileName: string;
-    numPages: number;
-}) {
-    return (
-        <div className="flex min-w-0 items-center gap-2">
-            <span className="truncate text-sm font-medium">{fileName}</span>
-            {numPages > 0 && (
-                <span className="shrink-0 text-xs text-muted-foreground">
-                    ({numPages} {numPages === 1 ? "page" : "pages"})
-                </span>
-            )}
-        </div>
+        <PanelTabBar
+            className="bg-surface-reference-header"
+            activeTabClassName="border-b-surface-reference bg-surface-reference"
+            tabs={[{ id: filePath, title: fileName }]}
+            activeTabId={filePath}
+            actions={
+                <>
+                    <ZoomOutButton scale={scale} onZoomOut={onZoomOut} />
+                    <ZoomIndicator scale={scale} />
+                    <ZoomInButton scale={scale} onZoomIn={onZoomIn} />
+                    <ToolbarDivider />
+                    <PreviousPageButton
+                        currentPage={currentPage}
+                        onPreviousPage={onPreviousPage}
+                    />
+                    <PageIndicator currentPage={currentPage} numPages={numPages} />
+                    <NextPageButton
+                        currentPage={currentPage}
+                        numPages={numPages}
+                        onNextPage={onNextPage}
+                    />
+                    <ToolbarDivider />
+                    <ClosePdfButton onClose={onClose} />
+                </>
+            }
+        />
     );
 }
 

@@ -182,7 +182,6 @@ export function App() {
                             />
                         ) : (
                             <NotePanel
-                                workspacePath={workspacePath}
                                 notePath={activeNotePath}
                                 onChangeNotePath={handleOpenFile}
                                 onNotesChanged={() =>

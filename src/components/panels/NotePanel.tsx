@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { FileText, Trash2 } from "lucide-react";
 
+import { PanelTabBar } from "@/components/panels/PanelTabBar";
 import { Button } from "@/components/ui/button";
 
 const AUTOSAVE_DELAY = 600;
@@ -14,12 +15,10 @@ function firstName(line: string): string {
 }
 
 export function NotePanel({
-    workspacePath,
     notePath,
     onChangeNotePath,
     onNotesChanged,
 }: {
-    workspacePath: string;
     notePath: string | null;
     onChangeNotePath: (path: string | null) => void;
     onNotesChanged: () => void;
@@ -101,18 +100,10 @@ export function NotePanel({
     }
 
     const fileName = notePath.split(/[/\\]/).pop() ?? notePath;
-    const relativeDir = notePath
-        .slice(workspacePath.length)
-        .split(/[/\\]+/)
-        .filter(Boolean)
-        .slice(0, -1)
-        .join(" / ");
-
     return (
         <section className="flex h-full flex-col bg-surface-reference">
             <NoteHeader
                 fileName={fileName}
-                relativeDir={relativeDir}
                 saving={saving}
                 dirty={dirty}
                 onDelete={handleDelete}
@@ -142,38 +133,36 @@ function EmptyNoteState() {
 
 function NoteHeader({
     fileName,
-    relativeDir,
     saving,
     dirty,
     onDelete,
 }: {
     fileName: string;
-    relativeDir: string;
     saving: boolean;
     dirty: boolean;
     onDelete: () => void;
 }) {
     return (
-        <div className="flex items-center justify-between border-b bg-surface-reference-header px-4 py-2.5">
-            <div className="flex min-w-0 flex-col">
-                <span className="truncate text-sm font-medium">{fileName}</span>
-                <span className="truncate text-xs text-muted-foreground">
-                    {relativeDir}
-                </span>
-            </div>
-            <div className="flex items-center gap-1">
-                <SaveStatus saving={saving} dirty={dirty} />
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    className="size-7"
-                    aria-label="Delete note"
-                    onClick={onDelete}
-                >
-                    <Trash2 className="size-4" />
-                </Button>
-            </div>
-        </div>
+        <PanelTabBar
+            className="bg-surface-reference-header"
+            activeTabClassName="border-b-surface-reference bg-surface-reference"
+            tabs={[{ id: fileName, title: fileName, dirty }]}
+            activeTabId={fileName}
+            actions={
+                <>
+                    <SaveStatus saving={saving} dirty={dirty} />
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-7"
+                        aria-label="Delete note"
+                        onClick={onDelete}
+                    >
+                        <Trash2 className="size-4" />
+                    </Button>
+                </>
+            }
+        />
     );
 }
 
