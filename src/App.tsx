@@ -32,7 +32,7 @@ export function App() {
     const filePanelRef = usePanelRef();
     const notePanelRef = usePanelRef();
     const [filesOpen, setFilesOpen] = useState(true);
-    const [notesOpen, setNotesOpen] = useState(true);
+    const [notesOpen, setNotesOpen] = useState(false);
     const [themeId, setThemeId] = useState<ThemeId>(() => {
         const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
         return isThemeId(storedTheme) ? storedTheme : DEFAULT_THEME_ID;
@@ -170,7 +170,7 @@ export function App() {
 
                     <Panel
                         panelRef={notePanelRef}
-                        defaultSize="30%"
+                        defaultSize="0%"
                         minSize="20%"
                         maxSize="44%"
                         collapsible

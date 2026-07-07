@@ -7,7 +7,6 @@ import {
     type MouseEvent as ReactMouseEvent,
     type SetStateAction,
 } from "react";
-import { createPortal } from "react-dom";
 import {
     FilePlus2,
     File as FileIcon,
@@ -19,19 +18,15 @@ import {
     Hash,
     FileText,
     Plus,
-    Trash2,
     Check,
     AlertCircle,
-    Pencil,
-    Copy,
-    Files,
-    ClipboardPaste,
-    ExternalLink,
-    MessageSquare,
 } from "lucide-react";
 
+import { FileContextMenu } from "@/components/panels/FileContextMenu";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+
+const MAX_COPY_PATH_ATTEMPTS = 100;
 
 async function findCopyPath(
     sourcePath: string,
@@ -40,18 +35,16 @@ async function findCopyPath(
     const sourceName = sourcePath.substring(sourcePath.lastIndexOf("/") + 1);
     const dotIndex = sourceName.lastIndexOf(".");
     const ext = dotIndex >= 0 ? sourceName.slice(dotIndex) : "";
-    const baseName =
-        dotIndex >= 0 ? sourceName.slice(0, dotIndex) : sourceName;
+    const baseName = dotIndex >= 0 ? sourceName.slice(0, dotIndex) : sourceName;
 
-    let newName = `${baseName}_copy${ext}`;
-    let newPath = `${targetDir}/${newName}`;
-    let counter = 2;
-    while ((await window.electron.notes.read(newPath)) !== null) {
-        newName = `${baseName}_copy_${counter}${ext}`;
-        newPath = `${targetDir}/${newName}`;
-        counter++;
+    for (let counter = 1; counter <= MAX_COPY_PATH_ATTEMPTS; counter++) {
+        const suffix = counter === 1 ? "_copy" : `_copy_${counter}`;
+        const newPath = `${targetDir}/${baseName}${suffix}${ext}`;
+        if ((await window.electron.notes.read(newPath)) === null) {
+            return newPath;
+        }
     }
-    return newPath;
+    return null;
 }
 
 export function FilePanel({
@@ -206,8 +199,7 @@ export function FilePanel({
             newBaseName: string | null,
         ) => {
             setRenamingPath(null);
-            if (newBaseName === null || newBaseName.trim().length === 0)
-                return;
+            if (newBaseName === null || newBaseName.trim().length === 0) return;
 
             const sourceEntry = sourceMap[node.name];
             if (sourceEntry) {
@@ -223,9 +215,7 @@ export function FilePanel({
                     : filePath;
                 onSelectedSourceNamesChange((current) =>
                     current.map((fileName) =>
-                        fileName === node.name
-                            ? renamed.fileName
-                            : fileName,
+                        fileName === node.name ? renamed.fileName : fileName,
                     ),
                 );
                 if (activeNotePath === filePath) onOpenNote(renamedPath);
@@ -266,10 +256,7 @@ export function FilePanel({
             const newPath = await findCopyPath(copiedFilePath, targetDir);
             if (newPath === null) return;
 
-            const success = await window.electron.notes.write(
-                newPath,
-                content,
-            );
+            const success = await window.electron.notes.write(newPath, content);
             if (success) {
                 setLocalVersion((v) => v + 1);
                 onNotesChanged();
@@ -287,10 +274,7 @@ export function FilePanel({
             const newPath = await findCopyPath(filePath, dir);
             if (newPath === null) return;
 
-            const success = await window.electron.notes.write(
-                newPath,
-                content,
-            );
+            const success = await window.electron.notes.write(newPath, content);
             if (success) {
                 setLocalVersion((v) => v + 1);
                 onNotesChanged();
@@ -391,7 +375,7 @@ function FolderRow({
     return (
         <button
             onClick={onToggle}
-            className="flex w-full items-center gap-1 rounded px-1.5 py-1 text-left text-sm hover:bg-accent"
+            className="flex w-full items-center gap-1 rounded px-1.5 py-1 text-left text-[13px] hover:bg-accent"
             style={{ paddingLeft: depth * 12 + 4 }}
         >
             {open ? (
@@ -423,7 +407,7 @@ function FileRowButton({
     return (
         <button
             onClick={onSelect}
-            className="flex min-w-0 flex-1 items-center gap-1.5 truncate text-left text-sm"
+            className="flex min-w-0 flex-1 items-center gap-1.5 truncate text-left text-[13px]"
             style={{ paddingLeft: depth * 12 + 14 }}
         >
             {isSource ? (
@@ -534,16 +518,12 @@ function TreeItem({
                         }
                     }}
                     onBlur={(e) =>
-                        onRenameSubmit?.(
-                            node.path,
-                            node,
-                            e.currentTarget.value,
-                        )
+                        onRenameSubmit?.(node.path, node, e.currentTarget.value)
                     }
-                    className="h-6 w-full rounded border border-input bg-background px-1.5 text-sm outline-none"
+                    className="h-6 w-full rounded border border-input bg-background px-1.5 text-[13px] outline-none"
                 />
                 {ext && (
-                    <span className="ml-1 shrink-0 text-sm text-muted-foreground">
+                    <span className="ml-1 shrink-0 text-[13px] text-muted-foreground">
                         {ext}
                     </span>
                 )}
@@ -633,163 +613,6 @@ function FileSearchInput({
                 />
             </div>
         </div>
-    );
-}
-
-function FileContextMenu({
-    node,
-    x,
-    y,
-    isSource,
-    sourceEntry,
-    inChatContext,
-    pasteDisabled,
-    onOpen,
-    onRename,
-    onDuplicate,
-    onCopyFile,
-    onPaste,
-    onCopyPath,
-    onReveal,
-    onToggleChatContext,
-    onDelete,
-    onClose,
-}: {
-    node: FileNode;
-    x: number;
-    y: number;
-    isSource: boolean;
-    sourceEntry: SourceEntry | undefined;
-    inChatContext: boolean;
-    pasteDisabled: boolean;
-    onOpen: () => void;
-    onRename: () => void;
-    onDuplicate: () => void;
-    onCopyFile: () => void;
-    onPaste: () => void;
-    onCopyPath: () => void;
-    onReveal: () => void;
-    onToggleChatContext: () => void;
-    onDelete: () => void;
-    onClose: () => void;
-}) {
-    useEffect(() => {
-        const handleClick = () => onClose();
-        const handleEscape = (e: KeyboardEvent) => {
-            if (e.key === "Escape") onClose();
-        };
-        document.addEventListener("click", handleClick);
-        document.addEventListener("keydown", handleEscape);
-        return () => {
-            document.removeEventListener("click", handleClick);
-            document.removeEventListener("keydown", handleEscape);
-        };
-    }, [onClose]);
-
-    const canUseChatContext = sourceEntry?.status === "ready";
-    const chatContextLabel = inChatContext
-        ? "Remove from chat context"
-        : "Add to chat context";
-
-    const isNoteFile = !isSource && node.name.endsWith(".md");
-
-    return createPortal(
-        <div
-            className="fixed z-50 flex min-w-48 flex-col overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md"
-            style={{ left: x, top: y }}
-            onClick={(event) => event.stopPropagation()}
-            onContextMenu={(event) => event.preventDefault()}
-        >
-            <div className="truncate px-2 py-1 text-[11px] text-muted-foreground">
-                {node.name}
-            </div>
-            <ContextMenuItem icon={ExternalLink} onSelect={onOpen}>
-                Open
-            </ContextMenuItem>
-            <ContextMenuItem icon={Pencil} onSelect={onRename}>
-                Rename
-            </ContextMenuItem>
-            <ContextMenuItem
-                icon={Files}
-                onSelect={onDuplicate}
-                disabled={isSource}
-            >
-                Duplicate
-            </ContextMenuItem>
-            <ContextMenuItem
-                icon={Copy}
-                onSelect={onCopyFile}
-                disabled={isSource}
-            >
-                Copy
-            </ContextMenuItem>
-            <ContextMenuItem
-                icon={ClipboardPaste}
-                onSelect={onPaste}
-                disabled={isSource || pasteDisabled}
-            >
-                Paste
-            </ContextMenuItem>
-            <ContextMenuItem icon={Copy} onSelect={onCopyPath}>
-                Copy path
-            </ContextMenuItem>
-            <ContextMenuItem icon={FolderOpen} onSelect={onReveal}>
-                Reveal in Finder
-            </ContextMenuItem>
-            {isSource ? (
-                <ContextMenuItem
-                    icon={MessageSquare}
-                    disabled={!canUseChatContext}
-                    onSelect={onToggleChatContext}
-                >
-                    {canUseChatContext ? chatContextLabel : "Source not ready"}
-                </ContextMenuItem>
-            ) : null}
-            <div className="my-1 h-px bg-border" />
-            <ContextMenuItem
-                icon={Trash2}
-                variant="destructive"
-                onSelect={onDelete}
-            >
-                {isSource
-                    ? "Remove source"
-                    : isNoteFile
-                      ? "Delete note"
-                      : "Delete file"}
-            </ContextMenuItem>
-        </div>,
-        document.body,
-    );
-}
-
-function ContextMenuItem({
-    children,
-    icon: Icon,
-    disabled = false,
-    variant,
-    onSelect,
-}: {
-    children: React.ReactNode;
-    icon: React.ComponentType<{ className?: string }>;
-    disabled?: boolean;
-    variant?: "destructive";
-    onSelect: () => void;
-}) {
-    return (
-        <Button
-            variant="ghost"
-            size="sm"
-            className={cn(
-                "justify-start rounded-sm",
-                variant === "destructive" &&
-                    "hover:bg-destructive/10 hover:text-destructive",
-            )}
-            disabled={disabled}
-            onClick={onSelect}
-        >
-            <Icon className="size-4" />
-            {children}
-        </Button>
     );
 }
 
