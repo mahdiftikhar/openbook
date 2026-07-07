@@ -99,6 +99,10 @@ export function App() {
     const handleOpenFile = (filePath: string | null) => {
         setActivePdfPage(null);
         setActiveNotePath(filePath);
+        if (filePath) {
+            notePanelRef.current?.expand();
+            setNotesOpen(true);
+        }
     };
 
     const handleOpenCitation = (citation: ChatCitation) => {

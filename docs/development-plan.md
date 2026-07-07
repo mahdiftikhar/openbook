@@ -20,16 +20,16 @@ Goal: reduce friction in the current app without making large architectural bets
 
 Work:
 
-- Improve chat default width and panel behavior.
+- ~~Improve chat default width and panel behavior.~~
 - Make chat keyboard-friendly.
 - Improve chat empty states and error states.
 - Add rendered Markdown support for chat output.
-- Make explorer search filter files.
+- ~~Make explorer search filter files.~~
 - Make Tab insert indentation in the note editor.
 - Preserve note editor focus after first-line filename rename.
-- Replace the visible `Saving...` / `Saved` text with a quieter save indicator.
+- ~~Replace the visible `Saving...` / `Saved` text with a quieter save indicator.~~
 - Improve note placeholder copy.
-- Improve the top bar visual design.
+- ~~Improve the top bar visual design.~~
 - Add an `Open in native app` fallback for PDFs.
 
 Success criteria:
@@ -144,7 +144,7 @@ Recommendation: keep notes stored as Markdown files on disk.
 
 Work:
 
-- Keep `.md` files as the source of truth.
+- ~~Keep `.md` files as the source of truth.~~
 - Add rendered Markdown support where it gives immediate value, starting with chat output.
 - Improve the note writing experience with better Markdown editing.
 - Consider split preview for notes.
@@ -163,15 +163,15 @@ Goal: make local-first file management less awkward and less risky.
 
 Work:
 
-- Add note context menu actions: rename, delete, copy path, and reveal in Finder.
-- Move delete out of the note panel header.
-- Add manual note rename.
+- ~~Add note context menu actions: rename, delete, copy path, and reveal in Finder.~~
+- ~~Move delete out of the note panel header.~~
+- ~~Add manual note rename.~~
 - Add source metadata display.
 - Add source search and filtering.
 - Add source removal confirmation.
 - Improve failed PDF extraction states.
 - Persist panel sizes.
-- Persist theme preference.
+- ~~Persist theme preference.~~
 
 Success criteria:
 
