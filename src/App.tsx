@@ -103,7 +103,10 @@ export function App() {
         setHighlightText(null);
         setActiveNotePath(filePath);
         if (filePath) {
-            notePanelRef.current?.expand();
+            const fileSize =
+                filePanelRef.current?.getSize().asPercentage ?? 16;
+            notePanelRef.current?.resize(`${(100 - fileSize) / 2}`);
+            setNotesOpen(true);
             setNotesOpen(true);
         }
     };
@@ -112,7 +115,9 @@ export function App() {
         setActivePdfPage(citation.page);
         setHighlightText(citation.excerpt);
         setActiveNotePath(citation.filePath);
-        notePanelRef.current?.expand();
+        const fileSize =
+            filePanelRef.current?.getSize().asPercentage ?? 16;
+        notePanelRef.current?.resize(`${(100 - fileSize) / 2}`);
         setNotesOpen(true);
     };
 
@@ -164,7 +169,7 @@ export function App() {
 
                     <Panel
                         defaultSize="54%"
-                        minSize="40%"
+                        minSize="10%"
                         style={{ overflow: "hidden" }}
                     >
                         <ChatPanel
@@ -181,8 +186,7 @@ export function App() {
                     <Panel
                         panelRef={notePanelRef}
                         defaultSize="0%"
-                        minSize="20%"
-                        maxSize="44%"
+                        minSize="10%"
                         collapsible
                         collapsedSize="0%"
                         onResize={() =>

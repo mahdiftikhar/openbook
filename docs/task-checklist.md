@@ -15,6 +15,7 @@ Running checklist for current polish, known issues, and near-term follow-up work
 
 ## UX / Polish
 
+- [ ] Opening a citation or file from the explorer resizes the opened side panel to 50%. Should not resize if side panel is already open.
 - [ ] After a note auto-determines its filename via first-line rename, the editor panel loses focus.
 - [ ] Placeholder text says `Start writing...`; replace with something better.
 - [ ] Persist panel sizes.
@@ -61,5 +62,5 @@ Running checklist for current polish, known issues, and near-term follow-up work
 - [ ] PDF viewer does not support text selection.
 - [ ] PDF viewer does not support text highlighting/annotations.
 - [ ] Add an action to send selected PDF text to chat context.
-- [ ] Citation back-references to source files should highlight the cited region or show an explicit visual indicator pointing to the exact location, not just the page.
+- [x] Citation back-references to source files should highlight the cited region or show an explicit visual indicator pointing to the exact location, not just the page.
 - [ ] PDF viewer needs an `Open in native app` fallback, likely in a right-click/context menu.
