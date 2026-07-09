@@ -112,6 +112,8 @@ export function App() {
         setActivePdfPage(citation.page);
         setHighlightText(citation.excerpt);
         setActiveNotePath(citation.filePath);
+        notePanelRef.current?.expand();
+        setNotesOpen(true);
     };
 
     const workspaceName = workspacePath.split(/[/\\]/).pop() || workspacePath;
