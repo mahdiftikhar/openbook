@@ -20,12 +20,12 @@ Running checklist for current polish, known issues, and near-term follow-up work
 
 ## UX / Polish
 
-- [ ] Opening a citation or file from the explorer resizes the opened side panel to 50%. Should not resize if side panel is already open.
+- [x] Opening a citation or file from the explorer resizes the opened side panel to 50%. Should not resize if side panel is already open.
 - [ ] Sometimes, a citation shows no highlighted text. Need to check whether the issue is the chunk itself or highlighting logic.
 - [ ] After a note auto-determines its filename via first-line rename, the editor panel loses focus.
 - [ ] Placeholder text says `Start writing...`; replace with something better.
 - [ ] Persist panel sizes.
-- [ ] Side panel should not resize if already open when a citation or file is clicked.
+- [x] Side panel should not resize if already open when a citation or file is clicked.
 
 ## Editor
 
@@ -35,8 +35,8 @@ Running checklist for current polish, known issues, and near-term follow-up work
 
 ## File Management
 
-- [ ] Explorer panel search input does not filter files yet.
-- [ ] Add confirmation for destructive note/source removal.
+- [x] Explorer panel search input does not filter files yet.
+- [x] Add confirmation for destructive note/source removal.
 - [ ] Improve failed PDF extraction states.
 - [ ] Add source metadata display.
 - [ ] Add source search and filtering.

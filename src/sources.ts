@@ -1,4 +1,4 @@
-import { dialog, ipcMain, shell } from "electron";
+import { BrowserWindow, dialog, ipcMain, shell } from "electron";
 import path from "node:path";
 import fs from "node:fs";
 import { extractText, getDocumentProxy } from "unpdf";
@@ -247,6 +247,18 @@ export function registerSourcesHandlers(): void {
     ipcMain.handle(
         "sources:remove",
         async (_event, workspacePath: string, fileName: string) => {
+            const choice = await dialog.showMessageBox(
+                BrowserWindow.getFocusedWindow() ?? undefined,
+                {
+                    type: "warning",
+                    buttons: ["Delete", "Cancel"],
+                    defaultId: 1,
+                    title: "Delete source",
+                    message: `Delete "${fileName}"?`,
+                    detail: "This cannot be undone.",
+                },
+            );
+            if (choice.response !== 0) return false;
             return removeSource(workspacePath, fileName);
         },
     );

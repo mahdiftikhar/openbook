@@ -105,10 +105,11 @@ export function App() {
         setHighlightText(null);
         setActiveNotePath(filePath);
         if (filePath) {
-            const fileSize =
-                filePanelRef.current?.getSize().asPercentage ?? 16;
-            notePanelRef.current?.resize(`${(100 - fileSize) / 2}`);
-            setNotesOpen(true);
+            if (notePanelRef.current?.isCollapsed()) {
+                const fileSize =
+                    filePanelRef.current?.getSize().asPercentage ?? 16;
+                notePanelRef.current?.resize(`${(100 - fileSize) / 2}`);
+            }
             setNotesOpen(true);
         }
     };
@@ -117,9 +118,11 @@ export function App() {
         setActivePdfPage(citation.page);
         setHighlightText(citation.excerpt);
         setActiveNotePath(citation.filePath);
-        const fileSize =
-            filePanelRef.current?.getSize().asPercentage ?? 16;
-        notePanelRef.current?.resize(`${(100 - fileSize) / 2}`);
+        if (notePanelRef.current?.isCollapsed()) {
+            const fileSize =
+                filePanelRef.current?.getSize().asPercentage ?? 16;
+            notePanelRef.current?.resize(`${(100 - fileSize) / 2}`);
+        }
         setNotesOpen(true);
     };
 
