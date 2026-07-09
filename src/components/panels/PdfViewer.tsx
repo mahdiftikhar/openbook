@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
 import * as pdfjsLib from "pdfjs-dist";
 import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
@@ -12,11 +12,13 @@ export function PdfViewer({
     filePath,
     targetPage,
     highlightText,
+    onAddTextContext,
     onClose,
 }: {
     filePath: string;
     targetPage: number | null;
     highlightText: string | null;
+    onAddTextContext: (excerpt: TextExcerpt) => void;
     onClose: () => void;
 }) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -244,6 +246,42 @@ export function PdfViewer({
         };
     }, [currentPage, highlightText, scale, numPages, targetPage]);
 
+    const [selectionState, setSelectionState] = useState<{
+        text: string;
+        x: number;
+        y: number;
+    } | null>(null);
+
+    useEffect(() => {
+        const handleSelectionChange = () => {
+            const selection = window.getSelection();
+            if (!selection || selection.isCollapsed) {
+                setSelectionState(null);
+                return;
+            }
+            const text = selection.toString().trim();
+            if (!text) {
+                setSelectionState(null);
+                return;
+            }
+            const node = selection.anchorNode;
+            if (!node || !(node.parentElement as HTMLElement | null)?.closest(".textLayer")) {
+                setSelectionState(null);
+                return;
+            }
+            const rect = selection.getRangeAt(0).getBoundingClientRect();
+            setSelectionState({
+                text,
+                x: rect.left + rect.width / 2,
+                y: rect.top,
+            });
+        };
+
+        document.addEventListener("selectionchange", handleSelectionChange);
+        return () =>
+            document.removeEventListener("selectionchange", handleSelectionChange);
+    }, []);
+
     const changeZoom = (delta: number) =>
         setScale((s) => Math.max(0.5, Math.min(3, s + delta)));
 
@@ -272,6 +310,21 @@ export function PdfViewer({
                 loading={loading}
                 error={error}
             />
+            {selectionState && (
+                <FloatingAddButton
+                    x={selectionState.x}
+                    y={selectionState.y}
+                    onAdd={() => {
+                        onAddTextContext({
+                            text: selectionState.text,
+                            filePath,
+                            page: currentPage,
+                        });
+                        window.getSelection()?.removeAllRanges();
+                        setSelectionState(null);
+                    }}
+                />
+            )}
         </section>
     );
 }
@@ -503,6 +556,36 @@ function PdfErrorMessage({ error }: { error: string }) {
     return (
         <div className="flex h-full items-center justify-center text-sm text-destructive">
             {error}
+        </div>
+    );
+}
+
+function FloatingAddButton({
+    x,
+    y,
+    onAdd,
+}: {
+    x: number;
+    y: number;
+    onAdd: () => void;
+}) {
+    const below = y + 34 > window.innerHeight;
+    const top = below ? y + 10 : y - 34;
+    const left = Math.max(4, Math.min(x - 48, window.innerWidth - 100));
+
+    return (
+        <div
+            className="pointer-events-none fixed z-50"
+            style={{ left, top }}
+        >
+            <button
+                type="button"
+                className="pointer-events-auto flex items-center gap-1 rounded-md bg-popover px-2 py-1 text-xs font-medium text-foreground shadow-md ring-1 ring-border hover:bg-accent"
+                onClick={onAdd}
+            >
+                <Plus className="size-3" />
+                Add to chat
+            </button>
         </div>
     );
 }

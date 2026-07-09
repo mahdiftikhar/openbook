@@ -379,7 +379,10 @@ function buildRetrievalQuery(request: ChatRequest): string {
         .slice(-6)
         .map((message) => message.content)
         .join("\n");
-    return `${recentHistory}\n${request.question}`;
+    const texts = (request.contextTexts ?? [])
+        .map((excerpt) => excerpt.text)
+        .join("\n");
+    return [recentHistory, texts, request.question].filter(Boolean).join("\n");
 }
 
 function getDeepSeekApiKey(): string | null {
@@ -420,27 +423,64 @@ function buildModelMessages(
 
 async function createChatContext(request: ChatRequest): Promise<ChatContext> {
     const sourceFileNames = uniqueSourceFileNames(request.sourceFileNames);
-    if (sourceFileNames.length === 0) {
-        throw new Error("Select at least one source before asking a question.");
+    const hasSources = sourceFileNames.length > 0;
+    const hasTexts =
+        request.contextTexts && request.contextTexts.length > 0;
+
+    if (!hasSources && !hasTexts) {
+        throw new Error(
+            "Select at least one source or add text context before asking a question.",
+        );
     }
 
-    const chunks = await loadSourceChunks(request.workspacePath, sourceFileNames);
-    if (chunks.length === 0) {
-        throw new Error("No extracted text was found for the selected sources.");
+    const citations: ChatCitation[] = [];
+    const sourcesList: RetrievedSource[] = [];
+    let nextId = 1;
+
+    if (hasSources) {
+        const chunks = await loadSourceChunks(
+            request.workspacePath,
+            sourceFileNames,
+        );
+        if (chunks.length === 0) {
+            throw new Error(
+                "No extracted text was found for the selected sources.",
+            );
+        }
+
+        const retrievalQuery = buildRetrievalQuery(request);
+        const terms = getSearchTerms(retrievalQuery);
+        const rankedChunks = rankChunks(chunks, retrievalQuery);
+
+        for (const ranked of rankedChunks) {
+            const citation = citationFromRankedChunk(ranked, nextId - 1, terms);
+            citations.push(citation);
+            sourcesList.push({ citation, text: ranked.chunk.text });
+            nextId++;
+        }
     }
 
-    const retrievalQuery = buildRetrievalQuery(request);
-    const terms = getSearchTerms(retrievalQuery);
-    const rankedChunks = rankChunks(chunks, retrievalQuery);
-    const sources = rankedChunks.map((ranked, index) => ({
-        citation: citationFromRankedChunk(ranked, index, terms),
-        text: ranked.chunk.text,
-    }));
+    if (hasTexts) {
+        const excerpts = request.contextTexts;
+        for (const excerpt of excerpts) {
+            const excerptText = cleanText(excerpt.text);
+            const citation: ChatCitation = {
+                id: nextId,
+                fileName: path.basename(excerpt.filePath),
+                filePath: excerpt.filePath,
+                page: excerpt.page,
+                excerpt:
+                    excerptText.length > 520
+                        ? `${excerptText.slice(0, 517).trim()}...`
+                        : excerptText,
+            };
+            citations.push(citation);
+            sourcesList.push({ citation, text: excerpt.text });
+            nextId++;
+        }
+    }
 
-    return {
-        citations: sources.map((source) => source.citation),
-        sources,
-    };
+    return { citations, sources: sourcesList };
 }
 
 function sendStreamEvent(sender: WebContents, event: ChatStreamEvent): void {

@@ -21,11 +21,18 @@ interface ChatHistoryMessage {
     content: string;
 }
 
+interface TextExcerpt {
+    text: string;
+    filePath: string;
+    page: number;
+}
+
 interface ChatRequest {
     requestId: string;
     workspacePath: string;
     question: string;
     sourceFileNames: string[];
+    contextTexts: TextExcerpt[];
     history: ChatHistoryMessage[];
 }
 

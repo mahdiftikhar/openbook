@@ -41,13 +41,17 @@ export function ChatPanel({
     workspacePath,
     sourcesRefreshKey,
     selectedSourceNames,
+    contextTexts,
     onSelectedSourceNamesChange,
+    onContextTextsChange,
     onOpenCitation,
 }: {
     workspacePath: string;
     sourcesRefreshKey: number;
     selectedSourceNames: string[];
+    contextTexts: TextExcerpt[];
     onSelectedSourceNamesChange: Dispatch<SetStateAction<string[]>>;
+    onContextTextsChange: Dispatch<SetStateAction<TextExcerpt[]>>;
     onOpenCitation: (citation: ChatCitation) => void;
 }) {
     const [sources, setSources] = useState<SourceEntry[]>([]);
@@ -169,7 +173,12 @@ export function ChatPanel({
 
     const send = () => {
         const text = draft.trim();
-        if (!text || streaming || selectedSourceNames.length === 0) return;
+        if (
+            !text ||
+            streaming ||
+            (selectedSourceNames.length === 0 && contextTexts.length === 0)
+        )
+            return;
 
         const requestId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
         const assistantId = `${requestId}-assistant`;
@@ -201,6 +210,7 @@ export function ChatPanel({
             workspacePath,
             question: text,
             sourceFileNames: selectedSourceNames,
+            contextTexts,
             history,
         });
     };
@@ -239,9 +249,11 @@ export function ChatPanel({
                 readySources={readySources}
                 selectedSourceNames={selectedSourceNames}
                 selectedSources={selectedSources}
+                contextTexts={contextTexts}
                 streaming={streaming}
                 onCancel={handleCancel}
                 onClearSources={() => onSelectedSourceNamesChange([])}
+                onClearTextContexts={() => onContextTextsChange([])}
                 onDraftChange={setDraft}
                 onSend={send}
                 onToggleSource={toggleSource}
@@ -456,9 +468,11 @@ function ChatComposer({
     readySources,
     selectedSourceNames,
     selectedSources,
+    contextTexts,
     streaming,
     onCancel,
     onClearSources,
+    onClearTextContexts,
     onDraftChange,
     onSend,
     onToggleSource,
@@ -467,14 +481,18 @@ function ChatComposer({
     readySources: SourceEntry[];
     selectedSourceNames: string[];
     selectedSources: SourceEntry[];
+    contextTexts: TextExcerpt[];
     streaming: boolean;
     onCancel: () => void;
     onClearSources: () => void;
+    onClearTextContexts: () => void;
     onDraftChange: (draft: string) => void;
     onSend: () => void;
     onToggleSource: (fileName: string) => void;
 }) {
-    const canSend = Boolean(draft.trim()) && selectedSourceNames.length > 0;
+    const canSend =
+        Boolean(draft.trim()) &&
+        (selectedSourceNames.length > 0 || contextTexts.length > 0);
 
     return (
         <div className="border-t bg-surface-composer px-3 py-2.5">
@@ -482,7 +500,9 @@ function ChatComposer({
                 readySources={readySources}
                 selectedSourceNames={selectedSourceNames}
                 selectedSources={selectedSources}
+                contextTexts={contextTexts}
                 onClearSources={onClearSources}
+                onClearTextContexts={onClearTextContexts}
                 onToggleSource={onToggleSource}
             />
             <div className="flex items-center gap-2">
@@ -520,15 +540,22 @@ function ContextBar({
     readySources,
     selectedSourceNames,
     selectedSources,
+    contextTexts,
     onClearSources,
+    onClearTextContexts,
     onToggleSource,
 }: {
     readySources: SourceEntry[];
     selectedSourceNames: string[];
     selectedSources: SourceEntry[];
+    contextTexts: TextExcerpt[];
     onClearSources: () => void;
+    onClearTextContexts: () => void;
     onToggleSource: (fileName: string) => void;
 }) {
+    const hasSources = selectedSources.length > 0;
+    const hasTexts = contextTexts.length > 0;
+
     return (
         <div className="mb-2 flex items-center gap-1">
             <SourceSelector
@@ -537,15 +564,18 @@ function ContextBar({
                 onToggleSource={onToggleSource}
             />
             <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
-                {formatSelectedSources(selectedSources)}
+                {formatSelectedSources(selectedSources, contextTexts)}
             </span>
             <Button
                 variant="ghost"
                 size="icon"
                 className="size-7"
                 aria-label="Clear context"
-                onClick={onClearSources}
-                disabled={selectedSourceNames.length === 0}
+                onClick={() => {
+                    onClearSources();
+                    onClearTextContexts();
+                }}
+                disabled={!hasSources && !hasTexts}
             >
                 <X className="size-3.5" />
             </Button>
@@ -599,11 +629,29 @@ function SourceSelector({
     );
 }
 
-function formatSelectedSources(selectedSources: SourceEntry[]): string {
-    if (selectedSources.length === 0) return "No sources selected";
-    if (selectedSources.length === 1) return `Context: ${selectedSources[0].fileName}`;
+function formatSelectedSources(
+    selectedSources: SourceEntry[],
+    contextTexts: TextExcerpt[],
+): string {
+    const parts: string[] = [];
 
-    const firstTwo = selectedSources.slice(0, 2).map((source) => source.fileName);
-    const extraCount = selectedSources.length - firstTwo.length;
-    return `Context: ${firstTwo.join(", ")}${extraCount > 0 ? ` +${extraCount}` : ""}`;
+    if (selectedSources.length === 0) {
+        parts.push("No sources selected");
+    } else if (selectedSources.length === 1) {
+        parts.push(`Context: ${selectedSources[0].fileName}`);
+    } else {
+        const firstTwo = selectedSources
+            .slice(0, 2)
+            .map((source) => source.fileName);
+        const extraCount = selectedSources.length - firstTwo.length;
+        parts.push(
+            `Context: ${firstTwo.join(", ")}${extraCount > 0 ? ` +${extraCount}` : ""}`,
+        );
+    }
+
+    if (contextTexts.length > 0) {
+        parts.push(`${contextTexts.length} text excerpt${contextTexts.length > 1 ? "s" : ""}`);
+    }
+
+    return parts.join(" · ");
 }

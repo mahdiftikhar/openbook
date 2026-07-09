@@ -47,6 +47,7 @@ export function App() {
     const [activePdfPage, setActivePdfPage] = useState<number | null>(null);
     const [highlightText, setHighlightText] = useState<string | null>(null);
     const [selectedSourceNames, setSelectedSourceNames] = useState<string[]>([]);
+    const [contextTexts, setContextTexts] = useState<TextExcerpt[]>([]);
     const [notesVersion, setNotesVersion] = useState(0);
 
     useEffect(() => {
@@ -96,6 +97,7 @@ export function App() {
         setActivePdfPage(null);
         setHighlightText(null);
         setSelectedSourceNames([]);
+        setContextTexts([]);
     };
 
     const handleOpenFile = (filePath: string | null) => {
@@ -119,6 +121,10 @@ export function App() {
             filePanelRef.current?.getSize().asPercentage ?? 16;
         notePanelRef.current?.resize(`${(100 - fileSize) / 2}`);
         setNotesOpen(true);
+    };
+
+    const handleAddTextContext = (excerpt: TextExcerpt) => {
+        setContextTexts((current) => [...current, excerpt]);
     };
 
     const workspaceName = workspacePath.split(/[/\\]/).pop() || workspacePath;
@@ -176,7 +182,9 @@ export function App() {
                             workspacePath={workspacePath}
                             sourcesRefreshKey={notesVersion}
                             selectedSourceNames={selectedSourceNames}
+                            contextTexts={contextTexts}
                             onSelectedSourceNamesChange={setSelectedSourceNames}
+                            onContextTextsChange={setContextTexts}
                             onOpenCitation={handleOpenCitation}
                         />
                     </Panel>
@@ -199,6 +207,7 @@ export function App() {
                                 filePath={activeNotePath}
                                 targetPage={activePdfPage}
                                 highlightText={highlightText}
+                                onAddTextContext={handleAddTextContext}
                                 onClose={() => handleOpenFile(null)}
                             />
                         ) : (
