@@ -21,8 +21,10 @@ export function PdfViewer({
 }) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const highlightCanvasRef = useRef<HTMLCanvasElement>(null);
+    const textLayerRef = useRef<HTMLDivElement>(null);
     const pdfRef = useRef<pdfjsLib.PDFDocumentProxy | null>(null);
     const renderTaskRef = useRef<pdfjsLib.RenderTask | null>(null);
+    const textLayerTaskRef = useRef<pdfjsLib.TextLayer | null>(null);
     const [numPages, setNumPages] = useState(0);
     const [currentPage, setCurrentPage] = useState(1);
     const [scale, setScale] = useState(1);
@@ -70,6 +72,7 @@ export function PdfViewer({
         return () => {
             cancelled = true;
             renderTaskRef.current?.cancel();
+            textLayerTaskRef.current?.cancel();
         };
     }, [filePath]);
 
@@ -85,16 +88,47 @@ export function PdfViewer({
 
         if (!pdf || !canvas) return;
         renderTaskRef.current?.cancel();
+        textLayerTaskRef.current?.cancel();
+
+        let cancelled = false;
 
         async function render() {
-            const page = await pdf.getPage(currentPage);
-            const viewport = page.getViewport({ scale });
-            canvas.width = viewport.width;
-            canvas.height = viewport.height;
-            renderTaskRef.current = page.render({ canvas, viewport });
-            await renderTaskRef.current.promise;
+            try {
+                const page = await pdf.getPage(currentPage);
+                if (cancelled) return;
+
+                const viewport = page.getViewport({ scale });
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+                renderTaskRef.current = page.render({ canvas, viewport });
+
+                const textContent = await page.getTextContent();
+                if (cancelled) return;
+
+                await renderTaskRef.current.promise;
+                if (cancelled) return;
+
+                const textDiv = textLayerRef.current;
+                if (textDiv) {
+                    textDiv.innerHTML = "";
+                    textLayerTaskRef.current = new pdfjsLib.TextLayer({
+                        textContentSource: textContent,
+                        container: textDiv,
+                        viewport,
+                    });
+                    await textLayerTaskRef.current.render();
+                }
+            } catch {
+                // silently handle render failures
+            }
         }
         render();
+
+        return () => {
+            cancelled = true;
+            renderTaskRef.current?.cancel();
+            textLayerTaskRef.current?.cancel();
+        };
     }, [currentPage, scale, numPages]);
 
     useEffect(() => {
@@ -234,6 +268,7 @@ export function PdfViewer({
             <PdfCanvasArea
                 canvasRef={canvasRef}
                 highlightCanvasRef={highlightCanvasRef}
+                textLayerRef={textLayerRef}
                 loading={loading}
                 error={error}
             />
@@ -421,11 +456,13 @@ function ClosePdfButton({ onClose }: { onClose: () => void }) {
 function PdfCanvasArea({
     canvasRef,
     highlightCanvasRef,
+    textLayerRef,
     loading,
     error,
 }: {
     canvasRef: RefObject<HTMLCanvasElement>;
     highlightCanvasRef: RefObject<HTMLCanvasElement>;
+    textLayerRef: RefObject<HTMLDivElement>;
     loading: boolean;
     error: string | null;
 }) {
@@ -448,6 +485,7 @@ function PdfCanvasArea({
                         top: 0,
                     }}
                 />
+                <div ref={textLayerRef} className="textLayer" />
             </div>
         </div>
     );

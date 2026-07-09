@@ -330,3 +330,37 @@
 .drag-region .no-drag {
     -webkit-app-region: no-drag;
 }
+
+.textLayer {
+    position: absolute;
+    text-align: initial;
+    inset: 0;
+    overflow: hidden;
+    opacity: 0.25;
+    line-height: 1;
+}
+
+.textLayer span,
+.textLayer br {
+    color: transparent;
+    position: absolute;
+    white-space: pre;
+    cursor: text;
+    transform-origin: 0% 0%;
+}
+
+.textLayer span::selection {
+    color: transparent;
+    background: Highlight;
+}
+
+.textLayer .highlight {
+    margin: -1px;
+    padding: 1px;
+    background-color: rgb(180 0 170);
+    border-radius: 4px;
+}
+
+.textLayer .highlight.selected {
+    background-color: rgb(0 100 0);
+}
