@@ -45,6 +45,7 @@ export function App() {
     const [checkingWorkspace, setCheckingWorkspace] = useState(true);
     const [activeNotePath, setActiveNotePath] = useState<string | null>(null);
     const [activePdfPage, setActivePdfPage] = useState<number | null>(null);
+    const [highlightText, setHighlightText] = useState<string | null>(null);
     const [selectedSourceNames, setSelectedSourceNames] = useState<string[]>([]);
     const [notesVersion, setNotesVersion] = useState(0);
 
@@ -93,11 +94,13 @@ export function App() {
         setWorkspacePath(null);
         setActiveNotePath(null);
         setActivePdfPage(null);
+        setHighlightText(null);
         setSelectedSourceNames([]);
     };
 
     const handleOpenFile = (filePath: string | null) => {
         setActivePdfPage(null);
+        setHighlightText(null);
         setActiveNotePath(filePath);
         if (filePath) {
             notePanelRef.current?.expand();
@@ -107,6 +110,7 @@ export function App() {
 
     const handleOpenCitation = (citation: ChatCitation) => {
         setActivePdfPage(citation.page);
+        setHighlightText(citation.excerpt);
         setActiveNotePath(citation.filePath);
     };
 
@@ -188,6 +192,7 @@ export function App() {
                             <PdfViewer
                                 filePath={activeNotePath}
                                 targetPage={activePdfPage}
+                                highlightText={highlightText}
                                 onClose={() => handleOpenFile(null)}
                             />
                         ) : (

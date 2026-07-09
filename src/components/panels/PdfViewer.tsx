@@ -11,13 +11,16 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 export function PdfViewer({
     filePath,
     targetPage,
+    highlightText,
     onClose,
 }: {
     filePath: string;
     targetPage: number | null;
+    highlightText: string | null;
     onClose: () => void;
 }) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const highlightCanvasRef = useRef<HTMLCanvasElement>(null);
     const pdfRef = useRef<pdfjsLib.PDFDocumentProxy | null>(null);
     const renderTaskRef = useRef<pdfjsLib.RenderTask | null>(null);
     const [numPages, setNumPages] = useState(0);
@@ -94,6 +97,119 @@ export function PdfViewer({
         render();
     }, [currentPage, scale, numPages]);
 
+    useEffect(() => {
+        const hCanvas = highlightCanvasRef.current;
+        const mCanvas = canvasRef.current;
+        const pdf = pdfRef.current;
+
+        if (!hCanvas || !mCanvas || !pdf || numPages === 0) return;
+
+        const ctx = hCanvas.getContext("2d");
+        if (!ctx) return;
+
+        if (hCanvas.width !== mCanvas.width || hCanvas.height !== mCanvas.height) {
+            hCanvas.width = mCanvas.width;
+            hCanvas.height = mCanvas.height;
+        }
+
+        ctx.clearRect(0, 0, hCanvas.width, hCanvas.height);
+
+        if (!highlightText || targetPage !== currentPage) return;
+
+        let cancelled = false;
+
+        const timer = setTimeout(async () => {
+            if (cancelled) return;
+
+            try {
+                const page = await pdf.getPage(currentPage);
+                const viewport = page.getViewport({ scale });
+                const textContent = await page.getTextContent();
+                if (cancelled) return;
+
+                const ctx2 = hCanvas.getContext("2d");
+                if (!ctx2) return;
+
+                const segments: {
+                    item: { str: string; width: number; height: number; transform: number[] };
+                    start: number;
+                    end: number;
+                }[] = [];
+                let concat = "";
+
+                for (const item of textContent.items) {
+                    if (!("str" in item)) continue;
+                    const str = (item.str as string).replace(/\s+/g, " ").trim();
+                    if (!str) continue;
+                    const start = concat.length;
+                    concat += (concat.length > 0 ? " " : "") + str;
+                    segments.push({
+                        item: item as { str: string; width: number; height: number; transform: number[] },
+                        start,
+                        end: concat.length,
+                    });
+                }
+
+                let search = highlightText
+                    .replace(/^\.\.\./, "")
+                    .replace(/\.\.\.$/, "")
+                    .trim()
+                    .replace(/\s+/g, " ")
+                    .toLowerCase();
+
+                const lowerConcat = concat.toLowerCase();
+                let matchStart = lowerConcat.indexOf(search);
+
+                if (matchStart === -1 && search.length > 200) {
+                    const shorter = search.slice(0, 200);
+                    matchStart = lowerConcat.indexOf(shorter);
+                    if (matchStart !== -1) search = shorter;
+                }
+
+                if (matchStart === -1) return;
+
+                const matchEnd = matchStart + search.length;
+
+                const matchingItems = segments.filter(
+                    (seg) => seg.start < matchEnd && seg.end > matchStart,
+                );
+
+                ctx2.fillStyle = "rgba(253, 224, 71, 0.35)";
+
+                const viewTransform = viewport.transform;
+
+                for (const { item } of matchingItems) {
+                    const tx = item.transform;
+                    const canvasX =
+                        viewTransform[0] * tx[4] +
+                        viewTransform[2] * tx[5] +
+                        viewTransform[4];
+                    const canvasBaselineY =
+                        viewTransform[1] * tx[4] +
+                        viewTransform[3] * tx[5] +
+                        viewTransform[5];
+
+                    const textHeight = Math.abs(item.height * viewTransform[3]);
+                    const textWidth = Math.abs(item.width * viewTransform[0]);
+
+                    ctx2.fillRect(
+                        canvasX,
+                        canvasBaselineY - textHeight,
+                        textWidth,
+                        textHeight,
+                    );
+                }
+            } catch {
+                // highlight failure is non-critical
+            }
+        }, 50);
+
+        return () => {
+            cancelled = true;
+            clearTimeout(timer);
+        };
+    }, [currentPage, highlightText, scale, numPages, targetPage]);
+
     const changeZoom = (delta: number) =>
         setScale((s) => Math.max(0.5, Math.min(3, s + delta)));
 
@@ -117,6 +233,7 @@ export function PdfViewer({
             />
             <PdfCanvasArea
                 canvasRef={canvasRef}
+                highlightCanvasRef={highlightCanvasRef}
                 loading={loading}
                 error={error}
             />
@@ -303,10 +420,12 @@ function ClosePdfButton({ onClose }: { onClose: () => void }) {
 
 function PdfCanvasArea({
     canvasRef,
+    highlightCanvasRef,
     loading,
     error,
 }: {
     canvasRef: RefObject<HTMLCanvasElement>;
+    highlightCanvasRef: RefObject<HTMLCanvasElement>;
     loading: boolean;
     error: string | null;
 }) {
@@ -314,11 +433,22 @@ function PdfCanvasArea({
         <div className="min-h-0 flex-1 overflow-auto bg-surface-pdf-canvas">
             {loading && <PdfLoadingMessage />}
             {error && <PdfErrorMessage error={error} />}
-            <canvas
-                ref={canvasRef}
-                className="mx-auto my-4 shadow-lg"
+            <div
+                className="relative mx-auto my-4 w-fit shadow-lg"
                 style={{ display: loading || error ? "none" : "block" }}
-            />
+            >
+                <canvas ref={canvasRef} style={{ display: "block" }} />
+                <canvas
+                    ref={highlightCanvasRef}
+                    style={{
+                        display: "block",
+                        left: 0,
+                        pointerEvents: "none",
+                        position: "absolute",
+                        top: 0,
+                    }}
+                />
+            </div>
         </div>
     );
 }
