@@ -16,6 +16,10 @@ const createWindow = () => {
     const mainWindow = new BrowserWindow({
         width: 1280,
         height: 800,
+        minWidth: 900,
+        minHeight: 600,
+        backgroundColor: "#0b111d",
+        show: false,
         frame: process.platform !== "darwin",
         titleBarStyle: process.platform === "darwin" ? "hidden" : "default",
         ...(process.platform === "darwin"
@@ -41,6 +45,10 @@ const createWindow = () => {
     if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
         mainWindow.webContents.openDevTools();
     }
+
+    mainWindow.once("ready-to-show", () => {
+        mainWindow.show();
+    });
 };
 
 loadEnvFiles();

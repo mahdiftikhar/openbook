@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { FileText } from "lucide-react";
+import { Check, FileText, PenLine } from "lucide-react";
 
 import { MarkdownEditor } from "@/components/editor/MarkdownEditor";
 import { PanelTabBar } from "@/components/panels/PanelTabBar";
@@ -113,9 +113,17 @@ export function NotePanel({
 
 function EmptyNoteState() {
     return (
-        <section className="flex h-full flex-col items-center justify-center bg-surface-reference text-muted-foreground">
-            <FileText className="size-8 opacity-40" />
-            <p className="mt-3 text-sm">Select a note or create a new one.</p>
+        <section className="flex h-full flex-col items-center justify-center bg-surface-reference px-8 text-center text-muted-foreground">
+            <div className="flex size-11 items-center justify-center rounded-2xl border border-border/70 bg-background/35 shadow-sm">
+                <FileText className="size-5 text-primary/70" />
+            </div>
+            <h3 className="font-display mt-4 text-lg font-medium text-foreground">
+                Open a document
+            </h3>
+            <p className="mt-1.5 max-w-56 text-xs leading-5">
+                Select a note or source from the library to read and annotate it
+                here.
+            </p>
         </section>
     );
 }
@@ -136,6 +144,21 @@ function NoteHeader({
             tabs={[{ id: fileName, title: fileName, dirty, closable: true }]}
             activeTabId={fileName}
             onCloseTab={onClose}
+            actions={
+                <span className="flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground">
+                    {dirty ? (
+                        <>
+                            <PenLine className="size-3 text-primary" />
+                            Saving
+                        </>
+                    ) : (
+                        <>
+                            <Check className="size-3 text-emerald-500" />
+                            Saved
+                        </>
+                    )}
+                </span>
+            }
         />
     );
 }
@@ -164,6 +187,8 @@ function NoteEditor({
             value={content}
             onChange={onContentChange}
             onBlur={onBlurSave}
+            placeholder="Start writing..."
+            className="note-markdown-editor"
         />
     );
 }

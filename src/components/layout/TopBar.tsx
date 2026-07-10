@@ -3,7 +3,7 @@ import {
     PanelLeftClose,
     PanelRightOpen,
     PanelRightClose,
-    BookOpen,
+    BookOpenText,
     Check,
     Moon,
     Palette,
@@ -54,19 +54,20 @@ export function TopBar({
     return (
         <header
             className={
-                "drag-region flex items-center gap-2 border-b bg-surface-topbar py-1 " +
-                (isMac ? "pl-20 pr-3" : "px-3")
+                "drag-region relative flex h-11 shrink-0 items-center gap-2 border-b border-border/70 bg-surface-topbar/95 py-1.5 shadow-[0_1px_0_rgb(255_255_255/0.03)] backdrop-blur-xl " +
+                (isMac ? "pl-[76px] pr-3" : "px-3")
             }
         >
             <FilePanelToggle open={filesOpen} onToggle={onToggleFiles} />
             <AppBrand />
+            <div className="mx-1 h-4 w-px bg-border/80" />
             <WorkspaceMenu
                 workspaceName={workspaceName}
                 onSwitchWorkspace={onSwitchWorkspace}
                 onCloseWorkspace={onCloseWorkspace}
             />
 
-            <div className="ml-auto flex items-center gap-1">
+            <div className="ml-auto flex items-center gap-0.5">
                 <ThemeMenu
                     themeId={themeId}
                     themeMode={themeMode}
@@ -90,8 +91,10 @@ function FilePanelToggle({
         <Button
             variant="ghost"
             size="icon"
-            className="no-drag size-7"
+            className="no-drag size-8 rounded-lg text-muted-foreground hover:text-foreground"
             aria-label={open ? "Hide file panel" : "Show file panel"}
+            title={open ? "Hide library" : "Show library"}
+            aria-pressed={open}
             onClick={onToggle}
         >
             {open ? (
@@ -105,9 +108,11 @@ function FilePanelToggle({
 
 function AppBrand() {
     return (
-        <div className="flex items-center gap-2">
-            <BookOpen className="size-4 text-primary" />
-            <span className="text-sm font-semibold">openbook</span>
+        <div className="flex items-center gap-2 pr-0.5">
+            <span className="brand-mark flex size-7 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm shadow-primary/20">
+                <BookOpenText className="size-3.5" strokeWidth={2} />
+            </span>
+            <span className="text-[13px] font-semibold tracking-tight">openbook</span>
         </div>
     );
 }
@@ -127,13 +132,18 @@ function WorkspaceMenu({
                 <Button
                     variant="ghost"
                     size="sm"
-                    className="no-drag h-6 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground"
+                    className="no-drag h-8 max-w-64 gap-1.5 rounded-lg px-2.5 text-xs font-medium text-muted-foreground hover:text-foreground"
+                    title={`Workspace: ${workspaceName}`}
                 >
                     {workspaceName}
-                    <ChevronDown className="size-3" />
+                    <ChevronDown className="size-3 opacity-60" />
                 </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-48">
+            <DropdownMenuContent align="start" className="w-56">
+                <DropdownMenuLabel className="truncate text-xs font-medium text-muted-foreground">
+                    {workspaceName}
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={onSwitchWorkspace}>
                     <FolderSync className="size-4" />
                     Switch Project...
@@ -164,8 +174,9 @@ function ThemeMenu({
                 <Button
                     variant="ghost"
                     size="icon"
-                    className="no-drag size-7"
+                    className="no-drag size-8 rounded-lg text-muted-foreground hover:text-foreground"
                     aria-label="Change theme"
+                    title="Appearance"
                 >
                     <Palette className="size-4" />
                 </Button>
@@ -209,8 +220,10 @@ function NotesPanelToggle({
         <Button
             variant="ghost"
             size="icon"
-            className="no-drag size-7"
+            className="no-drag size-8 rounded-lg text-muted-foreground hover:text-foreground"
             aria-label={open ? "Hide notes panel" : "Show notes panel"}
+            title={open ? "Hide document" : "Show document"}
+            aria-pressed={open}
             onClick={onToggle}
         >
             {open ? (

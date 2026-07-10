@@ -28,7 +28,7 @@
     --chart-3: oklch(0.398 0.07 227.392);
     --chart-4: oklch(0.828 0.189 84.429);
     --chart-5: oklch(0.769 0.188 70.08);
-    --radius: 0.625rem;
+    --radius: 0.75rem;
     --sidebar: oklch(0.985 0 0);
     --sidebar-foreground: oklch(0.145 0 0);
     --sidebar-primary: oklch(0.205 0 0);
@@ -267,6 +267,10 @@
 }
 
 @theme inline {
+    --font-sans: "Avenir Next", Avenir, "Segoe UI", Inter, ui-sans-serif,
+        system-ui, sans-serif;
+    --font-display: "Iowan Old Style", "Palatino Linotype", Palatino,
+        "Book Antiqua", Georgia, serif;
     --color-background: var(--background);
     --color-foreground: var(--foreground);
     --color-card: var(--card);
@@ -319,7 +323,135 @@
         @apply border-border outline-ring/50;
     }
     body {
-        @apply bg-background text-foreground;
+        @apply bg-background font-sans text-foreground antialiased;
+        overflow: hidden;
+        font-feature-settings: "ss01" 1, "cv11" 1;
+    }
+
+    button,
+    [role="button"] {
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    ::selection {
+        background: color-mix(in oklab, var(--primary) 28%, transparent);
+        color: var(--foreground);
+    }
+}
+
+* {
+    scrollbar-color: color-mix(in oklab, var(--muted-foreground) 32%, transparent)
+        transparent;
+    scrollbar-width: thin;
+}
+
+*::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+*::-webkit-scrollbar-thumb {
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--muted-foreground) 32%, transparent);
+    background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in oklab, var(--muted-foreground) 48%, transparent);
+    background-clip: padding-box;
+}
+
+.brand-mark {
+    position: relative;
+    overflow: hidden;
+}
+
+.brand-mark::after {
+    position: absolute;
+    inset: 0;
+    border: 1px solid rgb(255 255 255 / 0.18);
+    border-radius: inherit;
+    content: "";
+    pointer-events: none;
+}
+
+.onboarding-shell {
+    background-image:
+        radial-gradient(
+            circle at 76% 28%,
+            color-mix(in oklab, var(--primary) 11%, transparent),
+            transparent 32rem
+        ),
+        linear-gradient(135deg, var(--surface-shell), var(--background));
+}
+
+.onboarding-copy,
+.onboarding-preview {
+    animation: app-enter 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.onboarding-preview {
+    animation-delay: 80ms;
+}
+
+.citation-thread {
+    position: relative;
+}
+
+.citation-thread::before {
+    position: absolute;
+    top: 0.2rem;
+    bottom: 0.2rem;
+    left: 0;
+    width: 2px;
+    border-radius: 999px;
+    background: linear-gradient(
+        to bottom,
+        var(--primary),
+        color-mix(in oklab, var(--primary) 15%, transparent)
+    );
+    box-shadow: 0 0 16px color-mix(in oklab, var(--primary) 30%, transparent);
+    content: "";
+}
+
+.citation-thread::after {
+    position: absolute;
+    top: 0.15rem;
+    left: -3px;
+    width: 8px;
+    height: 8px;
+    border: 2px solid var(--surface-chat);
+    border-radius: 999px;
+    background: var(--primary);
+    content: "";
+}
+
+.source-token {
+    display: inline-flex;
+    align-items: center;
+    max-width: 10rem;
+    overflow: hidden;
+    border: 1px solid color-mix(in oklab, var(--primary) 24%, var(--border));
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--primary) 8%, var(--background));
+    padding: 0.2rem 0.5rem;
+    color: var(--primary);
+    font-size: 0.6rem;
+    font-weight: 600;
+    line-height: 1;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@keyframes app-enter {
+    from {
+        opacity: 0;
+        transform: translateY(8px) scale(0.995);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
     }
 }
 
@@ -354,6 +486,26 @@
     min-height: 100%;
     padding: 1rem;
     caret-color: var(--foreground);
+}
+
+.note-markdown-editor .cm-scroller {
+    padding: 1.5rem 0;
+}
+
+.note-markdown-editor .cm-content {
+    width: min(100%, 46rem);
+    margin: 0 auto;
+    padding: 1.5rem clamp(1.25rem, 4vw, 3.5rem) 8rem;
+    font-family: "Avenir Next", Avenir, "Segoe UI", ui-sans-serif, system-ui,
+        sans-serif;
+    font-size: 0.925rem;
+    line-height: 1.8;
+}
+
+.note-markdown-editor .cm-md-heading {
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia,
+        serif;
+    letter-spacing: -0.02em;
 }
 
 .markdown-editor .cm-line {
@@ -444,11 +596,13 @@
     align-items: center;
     gap: 0.375rem;
     border: 1px solid var(--border);
-    border-radius: 0.375rem;
-    background: color-mix(in oklab, var(--accent) 70%, transparent);
-    padding: 0.125rem 0.375rem;
-    color: var(--accent-foreground);
-    font-size: 0.75rem;
+    border-color: color-mix(in oklab, var(--primary) 22%, var(--border));
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--primary) 8%, var(--background));
+    padding: 0.175rem 0.45rem;
+    color: var(--primary);
+    font-size: 0.6875rem;
+    font-weight: 600;
     line-height: 1.25rem;
 }
 
@@ -472,6 +626,11 @@
 .chat-markdown-editor .cm-context-chip-remove:hover {
     background: color-mix(in oklab, var(--background) 80%, transparent);
     color: var(--foreground);
+}
+
+.chat-markdown-editor .cm-context-chip-remove:focus-visible {
+    outline: 2px solid color-mix(in oklab, var(--primary) 50%, transparent);
+    outline-offset: 1px;
 }
 
 .chat-markdown-editor .cm-editor.cm-focused {
@@ -607,6 +766,11 @@
     background: color-mix(in oklab, var(--primary) 20%, transparent);
 }
 
+.chat-citation-link:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+}
+
 .textLayer {
     position: absolute;
     text-align: initial;
@@ -639,4 +803,15 @@
 
 .textLayer .highlight.selected {
     background-color: rgb(0 100 0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
 }

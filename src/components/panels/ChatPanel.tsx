@@ -10,10 +10,13 @@ import {
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
-    BookOpen,
+    ArrowUp,
+    BookOpenCheck,
     ChevronDown,
+    CircleUserRound,
+    LoaderCircle,
     Paperclip,
-    Send,
+    Sparkles,
     Square,
     X,
 } from "lucide-react";
@@ -250,6 +253,7 @@ export function ChatPanel({
                 readySourceCount={readySources.length}
                 selectedSourceCount={selectedSources.length}
                 onOpenCitation={onOpenCitation}
+                onStarterPrompt={setDraft}
             />
             <ChatComposer
                 draft={draft}
@@ -287,10 +291,11 @@ function ChatHeader({
         <PanelTabBar
             className="bg-surface-chat-header"
             activeTabClassName="border-b-surface-chat bg-surface-chat"
-            tabs={[{ id: "research-chat", title: "Research Chat" }]}
+            tabs={[{ id: "research-chat", title: "Research thread" }]}
             activeTabId="research-chat"
             actions={
-                <span className="truncate text-xs text-muted-foreground">
+                <span className="flex items-center gap-1.5 truncate rounded-full border border-border/70 bg-background/50 px-2 py-1 text-[10px] font-medium text-muted-foreground">
+                    <BookOpenCheck className="size-3 text-primary" />
                     {formatSourceCount(selectedCount)}
                 </span>
             }
@@ -304,23 +309,26 @@ function MessageList({
     readySourceCount,
     selectedSourceCount,
     onOpenCitation,
+    onStarterPrompt,
 }: {
     listRef: RefObject<HTMLDivElement>;
     messages: Message[];
     readySourceCount: number;
     selectedSourceCount: number;
     onOpenCitation: (citation: ChatCitation) => void;
+    onStarterPrompt: (prompt: string) => void;
 }) {
     return (
         <div
             ref={listRef}
-            className="min-h-0 flex-1 overflow-y-auto bg-surface-chat px-6 py-6"
+            className="min-h-0 flex-1 overflow-y-auto bg-surface-chat px-5 py-7 sm:px-8"
         >
             <div className="mx-auto flex max-w-3xl flex-col gap-5">
                 {messages.length === 0 ? (
                     <EmptyChatState
                         readySourceCount={readySourceCount}
                         selectedSourceCount={selectedSourceCount}
+                        onStarterPrompt={onStarterPrompt}
                     />
                 ) : (
                     messages.map((message) => (
@@ -339,23 +347,50 @@ function MessageList({
 function EmptyChatState({
     readySourceCount,
     selectedSourceCount,
+    onStarterPrompt,
 }: {
     readySourceCount: number;
     selectedSourceCount: number;
+    onStarterPrompt: (prompt: string) => void;
 }) {
+    const canAsk = selectedSourceCount > 0;
+
     return (
-        <div className="mx-auto max-w-lg py-16 text-center">
-            <BookOpen className="mx-auto size-6 text-muted-foreground/70" />
-            <h3 className="mt-4 text-base font-semibold tracking-tight">
-                Start with a research question
-            </h3>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                Ask, compare, summarize, or trace an answer back to the selected
-                sources.
+        <div className="mx-auto max-w-xl py-12 sm:py-20">
+            <div className="mx-auto flex size-11 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary shadow-sm">
+                <Sparkles className="size-5" />
+            </div>
+            <p className="mt-5 text-center text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">
+                Grounded in your library
             </p>
-            <p className="mt-3 text-xs text-muted-foreground">
+            <h3 className="font-display mt-2 text-center text-3xl font-medium leading-tight tracking-[-0.025em]">
+                What are you trying to understand?
+            </h3>
+            <p className="mx-auto mt-3 max-w-md text-center text-sm leading-6 text-muted-foreground">
+                Ask across your sources, compare arguments, or follow a claim
+                back to the page it came from.
+            </p>
+            <p className="mt-3 text-center text-xs text-muted-foreground">
                 {formatEmptyContextMessage(readySourceCount, selectedSourceCount)}
             </p>
+            <div className="mt-8 grid gap-2 sm:grid-cols-3">
+                {[
+                    "Summarize the main argument",
+                    "Where do the sources disagree?",
+                    "What evidence supports this?",
+                ].map((prompt) => (
+                    <button
+                        key={prompt}
+                        type="button"
+                        className="group rounded-xl border border-border/70 bg-card/45 px-3 py-3 text-left text-xs leading-5 text-foreground/80 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:bg-card hover:text-foreground hover:shadow-md disabled:pointer-events-none disabled:opacity-45"
+                        disabled={!canAsk}
+                        onClick={() => onStarterPrompt(prompt)}
+                    >
+                        {prompt}
+                        <ArrowUp className="mt-2 size-3.5 rotate-45 text-primary opacity-50 transition-opacity group-hover:opacity-100" />
+                    </button>
+                ))}
+            </div>
         </div>
     );
 }
@@ -374,18 +409,23 @@ function MessageBubble({
             <div className={cn(isUser ? "max-w-[78%]" : "w-full")}>
                 <div
                     className={cn(
-                        "mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground",
-                        isUser && "text-right",
+                        "mb-1.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground",
+                        isUser && "justify-end text-right",
                     )}
                 >
-                    {isUser ? "You" : "Answer"}
+                    {isUser ? (
+                        <CircleUserRound className="size-3" />
+                    ) : (
+                        <Sparkles className="size-3 text-primary" />
+                    )}
+                    {isUser ? "You" : "Openbook"}
                 </div>
                 <div
                     className={cn(
-                        "text-sm leading-6",
+                        "text-sm leading-6 transition-colors",
                         isUser
-                            ? "rounded-2xl rounded-tr-sm bg-primary px-4 py-3 text-primary-foreground"
-                            : "text-foreground",
+                            ? "rounded-2xl rounded-tr-md bg-primary px-4 py-3 text-primary-foreground shadow-sm"
+                            : "citation-thread pl-5 text-foreground",
                         message.status === "error" &&
                             "rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-destructive",
                     )}
@@ -398,8 +438,9 @@ function MessageBubble({
                             onOpenCitation={onOpenCitation}
                         />
                     ) : (
-                        <span className="text-muted-foreground">
-                            Reading selected sources...
+                        <span className="flex items-center gap-2 py-1 text-muted-foreground">
+                            <LoaderCircle className="size-3.5 animate-spin text-primary" />
+                            Tracing ideas across your sources...
                         </span>
                     )}
                 </div>
@@ -621,8 +662,8 @@ function ChatComposer({
     ];
 
     return (
-        <div className="border-t bg-surface-composer px-3 py-3">
-            <div className="rounded-2xl border border-border bg-background/70 px-3 py-2 shadow-xs focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20">
+        <div className="border-t border-border/70 bg-surface-composer px-4 py-3.5">
+            <div className="mx-auto max-w-3xl rounded-2xl border border-border/80 bg-background/75 px-3.5 py-2.5 shadow-[0_8px_30px_rgb(0_0_0/0.08)] transition-all focus-within:border-primary/50 focus-within:bg-background focus-within:shadow-[0_10px_36px_rgb(0_0_0/0.11)] focus-within:ring-2 focus-within:ring-primary/10">
                 <ComposerMarkdownEditor
                     value={draft}
                     contextWidgets={contextWidgets}
@@ -630,7 +671,7 @@ function ChatComposer({
                     onSend={onSend}
                     disabled={streaming}
                 />
-                <div className="mt-1 flex items-center justify-between gap-2">
+                <div className="mt-1.5 flex items-center justify-between gap-2">
                     <div className="flex items-center gap-1">
                         <SourceSelector
                             readySources={readySources}
@@ -640,8 +681,9 @@ function ChatComposer({
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="mb-0.5 size-8"
+                            className="mb-0.5 size-8 rounded-lg text-muted-foreground"
                             aria-label="Clear context"
+                            title="Clear all context"
                             onClick={() => {
                                 onClearSources();
                                 onClearTextContexts();
@@ -651,19 +693,24 @@ function ChatComposer({
                             <X className="size-3.5" />
                         </Button>
                     </div>
-                    <Button
+                    <div className="flex items-center gap-2">
+                        <span className="hidden text-[10px] text-muted-foreground/70 sm:inline">
+                            {hasContext ? "⌘↵ to send" : "Add a source to begin"}
+                        </span>
+                        <Button
                         size="icon"
                         aria-label={streaming ? "Stop response" : "Send message"}
                         onClick={streaming ? onCancel : onSend}
                         disabled={!streaming && !canSend}
-                        className="mb-0.5 size-8"
+                        className="mb-0.5 size-8 rounded-xl shadow-sm"
                     >
                         {streaming ? (
                             <Square className="size-4" />
                         ) : (
-                            <Send className="size-4" />
+                            <ArrowUp className="size-4" />
                         )}
                     </Button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -688,7 +735,7 @@ function ComposerMarkdownEditor({
             value={value}
             onChange={onChange}
             onModEnter={onSend}
-            placeholder="Ask about your sources..."
+            placeholder="Ask a question, compare ideas, or trace a claim..."
             readOnly={disabled}
             topWidgets={contextWidgets}
             className="chat-markdown-editor"
@@ -709,12 +756,18 @@ function SourceSelector({
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
                 <Button
-                    variant="ghost"
+                    variant="outline"
                     size="sm"
-                    className="h-7 px-2"
+                    className="h-7 gap-1.5 rounded-lg border-border/70 bg-background/40 px-2 text-xs text-muted-foreground shadow-none hover:text-foreground"
                     aria-label="Select sources"
                 >
                     <Paperclip className="size-3.5" />
+                    <span>Sources</span>
+                    {selectedSourceNames.length > 0 ? (
+                        <span className="flex size-4 items-center justify-center rounded-full bg-primary/12 text-[9px] font-semibold text-primary">
+                            {selectedSourceNames.length}
+                        </span>
+                    ) : null}
                     <ChevronDown className="size-3" />
                 </Button>
             </DropdownMenuTrigger>

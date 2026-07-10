@@ -1,5 +1,14 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
-import { ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
+import {
+    AlertCircle,
+    ChevronLeft,
+    ChevronRight,
+    LoaderCircle,
+    Plus,
+    X,
+    ZoomIn,
+    ZoomOut,
+} from "lucide-react";
 import * as pdfjsLib from "pdfjs-dist";
 import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
@@ -360,7 +369,7 @@ function PdfToolbar({
                 tabs={[{ id: filePath, title: fileName }]}
                 activeTabId={filePath}
             />
-            <div className="flex h-9 shrink-0 items-center justify-end border-b bg-surface-reference-header px-2">
+            <div className="flex h-10 shrink-0 items-center justify-end border-b border-border/70 bg-surface-reference-header px-2.5">
                 <div className="flex items-center gap-1">
                     <ZoomOutButton scale={scale} onZoomOut={onZoomOut} />
                     <ZoomIndicator scale={scale} />
@@ -398,8 +407,10 @@ function ZoomOutButton({
             className="size-7"
             onClick={onZoomOut}
             disabled={scale <= 0.5}
+            aria-label="Zoom out"
+            title="Zoom out"
         >
-            -
+            <ZoomOut className="size-3.5" />
         </Button>
     );
 }
@@ -426,8 +437,10 @@ function ZoomInButton({
             className="size-7"
             onClick={onZoomIn}
             disabled={scale >= 3}
+            aria-label="Zoom in"
+            title="Zoom in"
         >
-            +
+            <ZoomIn className="size-3.5" />
         </Button>
     );
 }
@@ -446,6 +459,8 @@ function PreviousPageButton({
             className="size-7"
             onClick={onPreviousPage}
             disabled={currentPage <= 1}
+            aria-label="Previous page"
+            title="Previous page"
         >
             <ChevronLeft className="size-4" />
         </Button>
@@ -482,6 +497,8 @@ function NextPageButton({
             className="size-7"
             onClick={onNextPage}
             disabled={currentPage >= numPages}
+            aria-label="Next page"
+            title="Next page"
         >
             <ChevronRight className="size-4" />
         </Button>
@@ -500,6 +517,7 @@ function ClosePdfButton({ onClose }: { onClose: () => void }) {
             className="size-7"
             onClick={onClose}
             aria-label="Close PDF"
+            title="Close document"
         >
             <X className="size-4" />
         </Button>
@@ -546,16 +564,21 @@ function PdfCanvasArea({
 
 function PdfLoadingMessage() {
     return (
-        <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-            Loading PDF...
+        <div className="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground">
+            <LoaderCircle className="size-4 animate-spin text-primary" />
+            Preparing document
         </div>
     );
 }
 
 function PdfErrorMessage({ error }: { error: string }) {
     return (
-        <div className="flex h-full items-center justify-center text-sm text-destructive">
-            {error}
+        <div className="flex h-full items-center justify-center p-8 text-center text-sm text-destructive">
+            <div className="max-w-sm rounded-xl border border-destructive/20 bg-destructive/10 p-5">
+                <AlertCircle className="mx-auto size-5" />
+                <p className="mt-2 font-medium">This document could not be opened</p>
+                <p className="mt-1 text-xs opacity-80">{error}</p>
+            </div>
         </div>
     );
 }

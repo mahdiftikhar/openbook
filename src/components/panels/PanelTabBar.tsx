@@ -30,7 +30,7 @@ export function PanelTabBar({
     return (
         <div
             className={cn(
-                "flex h-9 shrink-0 items-center justify-between border-b px-2",
+                "flex h-10 shrink-0 items-center justify-between border-b border-border/70 px-2.5",
                 className,
             )}
         >
@@ -43,13 +43,13 @@ export function PanelTabBar({
                         <div
                             key={tab.id}
                             className={cn(
-                                "-mb-px flex h-8 min-w-0 max-w-56 items-center rounded-t-md border border-transparent text-xs font-medium transition-colors",
+                                "-mb-px flex h-9 min-w-0 max-w-64 items-center rounded-t-lg border border-transparent text-xs font-medium transition-colors",
                                 active
                                     ? cn(
                                           "border-border border-b-background bg-background text-foreground",
                                           activeTabClassName,
                                       )
-                                    : "text-muted-foreground hover:bg-background/50 hover:text-foreground",
+                                    : "text-muted-foreground hover:bg-background/35 hover:text-foreground",
                             )}
                         >
                             <button
@@ -58,7 +58,7 @@ export function PanelTabBar({
                                 aria-selected={active}
                                 tabIndex={active ? 0 : -1}
                                 title={tab.title}
-                                className="flex h-full min-w-0 items-center gap-1.5 px-3 outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                                className="flex h-full min-w-0 items-center gap-1.5 px-3 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50"
                                 onClick={() => onSelectTab?.(tab.id)}
                             >
                                 <span className="truncate">{tab.title}</span>
@@ -72,7 +72,7 @@ export function PanelTabBar({
                             {closable ? (
                                 <button
                                     type="button"
-                                    className="mr-1 rounded p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+                                    className="mr-1 rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
                                     aria-label={`Close ${tab.title}`}
                                     title="Close tab"
                                     onClick={() => onCloseTab(tab.id)}

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Group, Panel, Separator, usePanelRef } from "react-resizable-panels";
+import { BookOpenText, LoaderCircle } from "lucide-react";
 
 import { TopBar } from "@/components/layout/TopBar";
 import { FilePanel } from "@/components/panels/FilePanel";
@@ -22,9 +23,23 @@ import {
 function ResizeHandle() {
     return (
         <Separator
-            className="relative w-px shrink-0 bg-border transition-colors hover:bg-primary/50 data-[separator=active]:bg-primary data-[separator=focus]:bg-primary/70"
+            className="group relative z-10 w-px shrink-0 bg-border/70 transition-colors after:absolute after:inset-y-0 after:-left-1 after:w-2 hover:bg-primary/60 data-[separator=active]:bg-primary data-[separator=focus]:bg-primary/70"
             style={{ outline: "none" }}
         />
+    );
+}
+
+function AppLoadingState() {
+    return (
+        <div className="flex h-screen w-screen items-center justify-center bg-surface-shell text-foreground">
+            <div className="flex items-center gap-3 text-sm font-medium text-muted-foreground">
+                <span className="flex size-9 items-center justify-center rounded-xl border border-border/70 bg-card shadow-sm">
+                    <BookOpenText className="size-4 text-primary" />
+                </span>
+                <span>Opening your research space</span>
+                <LoaderCircle className="size-4 animate-spin text-primary" />
+            </div>
+        </div>
     );
 }
 
@@ -79,7 +94,7 @@ export function App() {
         }
     };
 
-    if (checkingWorkspace) return null;
+    if (checkingWorkspace) return <AppLoadingState />;
 
     if (!workspacePath) {
         return <Onboarding onComplete={setWorkspacePath} />;

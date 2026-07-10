@@ -20,6 +20,8 @@ import {
     Plus,
     Check,
     AlertCircle,
+    FileSearch,
+    LibraryBig,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -292,7 +294,11 @@ export function FilePanel({
 
     return (
         <aside className="flex h-full flex-col bg-surface-files">
-            <FilePanelHeader onAddPdf={handleAddPdf} onNewNote={handleNew} />
+            <FilePanelHeader
+                sourceCount={sourceEntries.length}
+                onAddPdf={handleAddPdf}
+                onNewNote={handleNew}
+            />
             <FileSearchInput value={searchQuery} onChange={setSearchQuery} />
             <FileTree
                 workspaceName={workspaceName}
@@ -375,7 +381,7 @@ function FolderRow({
     return (
         <button
             onClick={onToggle}
-            className="flex w-full items-center gap-1 rounded px-1.5 py-1 text-left text-[13px] hover:bg-accent"
+            className="flex h-7 w-full items-center gap-1 rounded-md px-1.5 text-left text-[13px] text-foreground/85 transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
             style={{ paddingLeft: depth * 12 + 4 }}
         >
             {open ? (
@@ -407,7 +413,7 @@ function FileRowButton({
     return (
         <button
             onClick={onSelect}
-            className="flex min-w-0 flex-1 items-center gap-1.5 truncate text-left text-[13px]"
+            className="flex min-w-0 flex-1 items-center gap-1.5 truncate text-left text-[13px] focus-visible:outline-none"
             style={{ paddingLeft: depth * 12 + 14 }}
         >
             {isSource ? (
@@ -534,8 +540,9 @@ function TreeItem({
     return (
         <div
             className={cn(
-                "group flex items-center rounded px-1.5 py-1 hover:bg-accent",
-                isActive && "bg-accent font-medium",
+                "group relative flex h-7 items-center rounded-md px-1.5 text-foreground/80 transition-colors hover:bg-accent hover:text-foreground",
+                isActive &&
+                    "bg-primary/10 font-medium text-foreground before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full before:bg-primary",
             )}
             onContextMenu={(event) => onFileContextMenu(event, node)}
         >
@@ -559,23 +566,32 @@ function TreeItem({
 }
 
 function FilePanelHeader({
+    sourceCount,
     onAddPdf,
     onNewNote,
 }: {
+    sourceCount: number;
     onAddPdf: () => void;
     onNewNote: () => void;
 }) {
     return (
-        <div className="flex items-center justify-between border-b border-sidebar-border px-3 py-2.5">
-            <h2 className="text-xs font-semibold uppercase tracking-wide text-sidebar-foreground/70">
-                Project Files
-            </h2>
+        <div className="flex min-h-12 items-center justify-between border-b border-sidebar-border/70 px-3">
+            <div className="min-w-0">
+                <h2 className="flex items-center gap-1.5 text-xs font-semibold text-sidebar-foreground">
+                    <LibraryBig className="size-3.5 text-primary" />
+                    Library
+                </h2>
+                <p className="mt-0.5 text-[10px] text-muted-foreground">
+                    {sourceCount === 1 ? "1 source" : `${sourceCount} sources`}
+                </p>
+            </div>
             <div className="flex items-center gap-0.5">
                 <Button
                     variant="ghost"
                     size="icon"
-                    className="size-6"
+                    className="size-7 rounded-lg text-muted-foreground hover:text-foreground"
                     aria-label="Add PDF source"
+                    title="Add PDF source"
                     onClick={onAddPdf}
                 >
                     <Plus className="size-3.5" />
@@ -583,8 +599,9 @@ function FilePanelHeader({
                 <Button
                     variant="ghost"
                     size="icon"
-                    className="size-6"
+                    className="size-7 rounded-lg text-muted-foreground hover:text-foreground"
                     aria-label="New note"
+                    title="New note"
                     onClick={onNewNote}
                 >
                     <FilePlus2 className="size-3.5" />
@@ -602,16 +619,17 @@ function FileSearchInput({
     onChange: (q: string) => void;
 }) {
     return (
-        <div className="px-3 py-2">
-            <div className="flex items-center gap-2 rounded-md border border-border bg-accent/60 px-2">
+        <div className="px-3 py-2.5">
+            <label className="flex items-center gap-2 rounded-lg border border-border/80 bg-background/45 px-2.5 shadow-sm transition-colors focus-within:border-primary/50 focus-within:bg-background focus-within:ring-2 focus-within:ring-primary/10">
                 <Search className="size-3.5 text-muted-foreground" />
                 <input
                     value={value}
                     onChange={(e) => onChange(e.target.value)}
-                    placeholder="Search files..."
-                    className="h-7 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                    placeholder="Search library"
+                    aria-label="Search library"
+                    className="h-8 w-full bg-transparent text-xs outline-none placeholder:text-muted-foreground/75"
                 />
-            </div>
+            </label>
         </div>
     );
 }
@@ -668,29 +686,38 @@ function FileTree({
     const searching = searchQuery.length > 0;
 
     return (
-        <div className="flex-1 overflow-y-auto px-2 pb-3">
+        <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
             <WorkspaceRootLabel workspaceName={workspaceName} />
-            {filteredTree.map((node) => (
-                <TreeItem
-                    key={node.path}
-                    node={node}
-                    depth={0}
-                    selectedPath={activeNotePath}
-                    onSelect={onSelect}
-                    getSourceEntry={getSourceEntry}
-                    forceExpand={searching}
-                    onFileContextMenu={onFileContextMenu}
-                    renamingPath={renamingPath}
-                    onRenameSubmit={onRenameSubmit}
-                />
-            ))}
+            {filteredTree.length > 0 ? (
+                filteredTree.map((node) => (
+                    <TreeItem
+                        key={node.path}
+                        node={node}
+                        depth={0}
+                        selectedPath={activeNotePath}
+                        onSelect={onSelect}
+                        getSourceEntry={getSourceEntry}
+                        forceExpand={searching}
+                        onFileContextMenu={onFileContextMenu}
+                        renamingPath={renamingPath}
+                        onRenameSubmit={onRenameSubmit}
+                    />
+                ))
+            ) : (
+                <div className="mx-2 mt-8 text-center text-muted-foreground">
+                    <FileSearch className="mx-auto size-5 opacity-50" />
+                    <p className="mt-2 text-xs">
+                        {searching ? "No matching files" : "Your library is empty"}
+                    </p>
+                </div>
+            )}
         </div>
     );
 }
 
 function WorkspaceRootLabel({ workspaceName }: { workspaceName: string }) {
     return (
-        <div className="mb-1 flex items-center gap-1.5 px-1.5 py-1 text-xs font-medium text-muted-foreground">
+        <div className="mb-1 flex items-center gap-1.5 px-1.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/80">
             <Folder className="size-3.5" />
             <span>{workspaceName}</span>
         </div>
