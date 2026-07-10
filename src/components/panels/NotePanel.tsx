@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FileText } from "lucide-react";
 
+import { MarkdownEditor } from "@/components/editor/MarkdownEditor";
 import { PanelTabBar } from "@/components/panels/PanelTabBar";
 
 const AUTOSAVE_DELAY = 600;
@@ -25,7 +26,6 @@ export function NotePanel({
     const [content, setContent] = useState("");
     const [loaded, setLoaded] = useState(false);
     const [dirty, setDirty] = useState(false);
-    const editorRef = useRef<HTMLTextAreaElement | null>(null);
     const currentPathRef = useRef<string | null>(notePath);
 
     useEffect(() => {
@@ -99,7 +99,6 @@ export function NotePanel({
                 onClose={handleClose}
             />
             <NoteEditor
-                editorRef={editorRef}
                 loaded={loaded}
                 content={content}
                 onContentChange={(value) => {
@@ -142,13 +141,11 @@ function NoteHeader({
 }
 
 function NoteEditor({
-    editorRef,
     loaded,
     content,
     onContentChange,
     onBlurSave,
 }: {
-    editorRef: RefObject<HTMLTextAreaElement>;
     loaded: boolean;
     content: string;
     onContentChange: (value: string) => void;
@@ -163,13 +160,10 @@ function NoteEditor({
     }
 
     return (
-        <textarea
-            ref={editorRef}
+        <MarkdownEditor
             value={content}
-            onChange={(e) => onContentChange(e.target.value)}
+            onChange={onContentChange}
             onBlur={onBlurSave}
-            className="min-h-0 flex-1 resize-none bg-transparent px-4 pb-4 font-mono text-sm leading-relaxed outline-none placeholder:text-muted-foreground"
-            placeholder="Start writing..."
         />
     );
 }
