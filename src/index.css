@@ -415,6 +415,198 @@
     display: none;
 }
 
+.chat-markdown-editor .cm-editor {
+    max-height: 10rem;
+    min-height: 2.5rem;
+    width: 100%;
+}
+
+.chat-markdown-editor .cm-scroller {
+    max-height: 10rem;
+}
+
+.chat-markdown-editor .cm-content {
+    min-height: 2.5rem;
+    padding: 0.5rem 0;
+}
+
+.chat-markdown-editor .cm-context-widget {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.375rem;
+    margin-bottom: 0.375rem;
+}
+
+.chat-markdown-editor .cm-context-chip {
+    display: inline-flex;
+    max-width: 14rem;
+    align-items: center;
+    gap: 0.375rem;
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+    background: color-mix(in oklab, var(--accent) 70%, transparent);
+    padding: 0.125rem 0.375rem;
+    color: var(--accent-foreground);
+    font-size: 0.75rem;
+    line-height: 1.25rem;
+}
+
+.chat-markdown-editor .cm-context-chip-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.chat-markdown-editor .cm-context-chip-remove {
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    font: inherit;
+    line-height: 1;
+    padding: 0 0.125rem;
+}
+
+.chat-markdown-editor .cm-context-chip-remove:hover {
+    background: color-mix(in oklab, var(--background) 80%, transparent);
+    color: var(--foreground);
+}
+
+.chat-markdown-editor .cm-editor.cm-focused {
+    outline: none;
+}
+
+.chat-markdown > :first-child {
+    margin-top: 0;
+}
+
+.chat-markdown > :last-child {
+    margin-bottom: 0;
+}
+
+.chat-markdown p,
+.chat-markdown ul,
+.chat-markdown ol,
+.chat-markdown blockquote,
+.chat-markdown pre,
+.chat-markdown table {
+    margin: 0.6rem 0;
+}
+
+.chat-markdown h1,
+.chat-markdown h2,
+.chat-markdown h3 {
+    margin: 0.85rem 0 0.4rem;
+    font-weight: 700;
+    line-height: 1.25;
+}
+
+.chat-markdown h1 {
+    font-size: 1.25rem;
+}
+
+.chat-markdown h2 {
+    font-size: 1.125rem;
+}
+
+.chat-markdown h3 {
+    font-size: 1rem;
+}
+
+.chat-markdown ul,
+.chat-markdown ol {
+    padding-left: 1.25rem;
+}
+
+.chat-markdown ul {
+    list-style: disc;
+}
+
+.chat-markdown ol {
+    list-style: decimal;
+}
+
+.chat-markdown li + li {
+    margin-top: 0.2rem;
+}
+
+.chat-markdown blockquote {
+    border-left: 3px solid var(--border);
+    color: var(--muted-foreground);
+    padding-left: 0.75rem;
+}
+
+.chat-markdown code {
+    border-radius: 0.35rem;
+    background: color-mix(in oklab, var(--muted) 80%, transparent);
+    padding: 0.1rem 0.3rem;
+    font-family:
+        ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+        "Courier New", monospace;
+    font-size: 0.85em;
+}
+
+.chat-markdown pre {
+    overflow-x: auto;
+    border-radius: 0.75rem;
+    background: color-mix(in oklab, var(--muted) 70%, transparent);
+    padding: 0.85rem;
+}
+
+.chat-markdown pre code {
+    background: transparent;
+    padding: 0;
+}
+
+.chat-markdown table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    border-collapse: collapse;
+}
+
+.chat-markdown th,
+.chat-markdown td {
+    border: 1px solid var(--border);
+    padding: 0.35rem 0.5rem;
+}
+
+.chat-markdown a {
+    color: var(--primary);
+    text-decoration: underline;
+    text-underline-offset: 0.2rem;
+}
+
+.chat-markdown-user code,
+.chat-markdown-user pre {
+    background: color-mix(in oklab, var(--primary-foreground) 18%, transparent);
+}
+
+.chat-markdown-user a {
+    color: currentColor;
+}
+
+.chat-citation-link {
+    display: inline-flex;
+    border: 0;
+    border-radius: 0.35rem;
+    background: color-mix(in oklab, var(--primary) 12%, transparent);
+    color: var(--primary);
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.8em;
+    font-weight: 600;
+    line-height: 1.3;
+    margin: 0 0.1rem;
+    padding: 0.05rem 0.3rem;
+}
+
+.chat-citation-link:hover {
+    background: color-mix(in oklab, var(--primary) 20%, transparent);
+}
+
 .textLayer {
     position: absolute;
     text-align: initial;

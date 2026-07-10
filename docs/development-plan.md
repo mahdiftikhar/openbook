@@ -21,14 +21,14 @@ Goal: reduce friction in the current app without making large architectural bets
 Work:
 
 - ~~Improve chat default width and panel behavior.~~
-- Make chat keyboard-friendly.
+- ~~Make chat keyboard-friendly.~~
 - Improve chat empty states and error states.
-- Add rendered Markdown support for chat output.
+- ~~Add rendered Markdown support for chat output.~~
 - ~~Make explorer search filter files.~~
-- Make Tab insert indentation in the note editor.
+- ~~Make Tab insert indentation in the note editor.~~
 - Preserve note editor focus after first-line filename rename.
 - ~~Replace the visible `Saving...` / `Saved` text with a quieter save indicator.~~
-- Improve note placeholder copy.
+- ~~Improve note placeholder copy.~~
 - ~~Improve the top bar visual design.~~
 - Add an `Open in native app` fallback for PDFs.
 
@@ -77,10 +77,10 @@ Goal: rebuild the chat interface around context items instead of a simple source
 Work:
 
 - Replace the current source dropdown with a context tray.
-- Show selected sources, excerpts, notes, and search scope as removable chips or cards.
-- Add a better multiline composer.
-- Improve send, cancel, and disabled states.
-- Make keyboard shortcuts predictable.
+- Show selected sources, excerpts, notes, and search scope as removable chips or cards. Selected sources and PDF excerpts are now shown as removable composer chips; notes and search scope remain future work.
+- ~~Add a better multiline composer.~~
+- ~~Improve send, cancel, and disabled states.~~
+- ~~Make keyboard shortcuts predictable.~~
 - Leave room for future `/` commands and `@` mentions.
 - Allow prompts without explicit sources by using automatic search across ready sources.
 
@@ -145,8 +145,8 @@ Recommendation: keep notes stored as Markdown files on disk.
 Work:
 
 - ~~Keep `.md` files as the source of truth.~~
-- Add rendered Markdown support where it gives immediate value, starting with chat output.
-- Improve the note writing experience with better Markdown editing.
+- ~~Add rendered Markdown support where it gives immediate value, starting with chat output.~~
+- Improve the note writing experience with better Markdown editing. Basic Markdown syntax highlighting is now in place; richer shortcuts and preview remain future work.
 - Consider split preview for notes.
 - Evaluate a Markdown-first editor before choosing a dependency.
 - Avoid a full block editor unless plain Markdown editing proves insufficient.

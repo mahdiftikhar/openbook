@@ -7,16 +7,16 @@ The app is currently in **v0.1.0 foundation work**.
 | Area             | Status         | Notes                                                                                                                                                                |
 | ---------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Workspace        | Mostly done    | Create/open workspace, create required structure, persist last path, switch/close project.                                                                           |
-| Notes            | Mostly done    | Create, open, edit, autosave, rename from first line, delete, and list notes.                                                                                        |
+| Notes            | Mostly done    | Create, open, edit with Markdown syntax highlighting, autosave, rename from first line, delete, and list notes.                                                     |
 | Sources          | Partial        | PDF import copies files, extracts text sidecars, stores source metadata, lists/removes sources, and shows ready/error status.                                        |
 | PDF viewing      | Partial        | In-app PDF viewer supports page navigation and zoom.                                                                                                                 |
 | Web articles     | Missing        | No URL ingestion, fetch, markdown conversion, or indexing yet.                                                                                                       |
 | YouTube          | Missing        | No transcript ingestion yet.                                                                                                                                         |
 | Indexing/RAG     | Missing        | Extracted text exists for PDFs, but there is no retrieval index, embeddings, or RAG pipeline yet.                                                                    |
-| Chat             | Prototype      | Chat can query selected PDF sources with simple keyword retrieval, optional DeepSeek streaming, local fallback responses, cancellation, and clickable citations. This is intentionally temporary and needs a broader redesign. |
+| Chat             | Prototype      | Chat can query selected PDF sources with simple keyword retrieval, optional DeepSeek streaming, local fallback responses, cancellation, Markdown-rendered messages, inline context chips, and clickable citations. This still needs a broader context/retrieval redesign. |
 | File watcher     | Deferred       | Not needed for the current foundation because the app mostly owns writes through its own UI. Add later when external edits, manual file drops, and automatic re-indexing become core behavior. |
 | Settings         | Mostly missing | Workspace switching exists, but no settings UI for LLM provider, API keys, model, or embeddings.                                                                     |
-| v0.2.0+ features | Missing        | Persistent chats, chat management, markdown preview/highlighting, source enrichment, agent tools, tagging, search, backlinks, and templates are not implemented yet. |
+| v0.2.0+ features | Missing        | Persistent chats, chat management, note preview, source enrichment, agent tools, tagging, search, backlinks, and templates are not implemented yet.                  |
 
 ## Version History
 
@@ -40,7 +40,7 @@ The app is currently in **v0.1.0 foundation work**.
 
 - **Create note.** User creates a new plain-text (markdown) note. The file is written to `workspace/notes/`. Filename derived from the first line or a user-provided title.
 - **Open note.** User selects a note from a list/sidebar. Content is loaded and displayed in the editor.
-- **Edit note.** User edits the note content in a text editor component.
+- **Edit note.** User edits the note content in a Markdown editor with syntax highlighting and heading sizing.
 - **Save note.** Manual save or autosave. Writes directly to the markdown file on disk.
 - **Delete note.** User deletes a note. Removes the file from `workspace/notes/`. Consider soft-delete (trash) or confirmation.
 - **List notes.** Sidebar shows all notes in the workspace. Sorted by modification time, name, or custom order.
@@ -58,13 +58,14 @@ The app is currently in **v0.1.0 foundation work**.
 
 Current status: prototype only. The current implementation is useful for proving the loop from selected PDFs to retrieved context to cited answers, but it is not the final chat architecture.
 
-- **Source selection for chat.** User selects one or more sources to use as context for a question.
-- **Ask question.** User types a question. The selected sources are used as retrieval context.
+- **Source selection for chat.** User selects one or more sources to use as context for a question. Selected sources and PDF excerpts appear as removable context chips in the composer.
+- **Ask question.** User types a Markdown-capable multiline prompt. The selected sources are used as retrieval context.
 - **Streaming response.** The LLM response streams token-by-token into the chat panel.
-- **Citations.** When the LLM references content from a source, the citation is displayed inline (e.g., `[1]`) and clickable — it navigates to the relevant location in the source.
+- **Markdown chat messages.** User prompts and assistant responses render Markdown, including headings, lists, code, tables, links, and blockquotes.
+- **Citations.** When the LLM references content from a source, the citation is displayed inline (e.g., `[1]`) and clickable — it navigates to the relevant location in the source. There is a known issue where some citation/source opens do not highlight the referenced text.
 - **Conversation history.** The chat maintains a scrollable history of messages within a session.
 - **Temporary retrieval.** Current retrieval is simple keyword chunk ranking over selected PDFs, not a real embedding/vector index.
-- **Temporary chat UI.** The current composer and source picker are intentionally simple. They should be replaced later with a keyboard-friendly interface that supports `/` commands, `@` source/tool mentions, richer formatting, notes as context, and prompts without explicit source selection.
+- **Temporary chat architecture.** The composer has been improved, but chat is still coupled to selected PDFs and should evolve toward `/` commands, `@` source/tool mentions, notes as context, automatic source search, and prompts without explicit source selection.
 
 ### File Watcher
 
@@ -99,7 +100,7 @@ Current status: deferred. A file watcher is not required for the current foundat
 
 ### Editor
 
-- **Syntax highlighting for markdown.** Code blocks, headings, bold/italic, lists rendered with basic highlighting.
+- **Syntax highlighting for markdown.** Code blocks, headings, bold/italic, lists rendered with basic highlighting. Basic Markdown editing is already present; future work should focus on richer shortcuts and preview.
 - **Split view.** Option to show a rendered preview alongside the raw markdown editor.
 
 ---

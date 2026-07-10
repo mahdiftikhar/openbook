@@ -7,6 +7,8 @@ import {
     type RefObject,
     type SetStateAction,
 } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import {
     BookOpen,
     ChevronDown,
@@ -16,6 +18,10 @@ import {
     X,
 } from "lucide-react";
 
+import {
+    MarkdownEditor,
+    type MarkdownEditorWidget,
+} from "@/components/editor/MarkdownEditor";
 import { PanelTabBar } from "@/components/panels/PanelTabBar";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,7 +32,6 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 type Message = {
@@ -36,6 +41,8 @@ type Message = {
     citations?: ChatCitation[];
     status?: "streaming" | "error";
 };
+
+const CITATION_LINK_PREFIX = "#openbook-citation-";
 
 export function ChatPanel({
     workspacePath,
@@ -255,6 +262,13 @@ export function ChatPanel({
                 onClearSources={() => onSelectedSourceNamesChange([])}
                 onClearTextContexts={() => onContextTextsChange([])}
                 onDraftChange={setDraft}
+                onRemoveTextContext={(index) =>
+                    onContextTextsChange((current) =>
+                        current.filter((_excerpt, currentIndex) =>
+                            currentIndex !== index,
+                        ),
+                    )
+                }
                 onSend={send}
                 onToggleSource={toggleSource}
             />
@@ -368,7 +382,7 @@ function MessageBubble({
                 </div>
                 <div
                     className={cn(
-                        "whitespace-pre-wrap text-sm leading-6",
+                        "text-sm leading-6",
                         isUser
                             ? "rounded-2xl rounded-tr-sm bg-primary px-4 py-3 text-primary-foreground"
                             : "text-foreground",
@@ -377,9 +391,10 @@ function MessageBubble({
                     )}
                 >
                     {message.content ? (
-                        <CitationText
+                        <MarkdownMessage
                             content={message.content}
                             citations={message.citations ?? []}
+                            user={isUser}
                             onOpenCitation={onOpenCitation}
                         />
                     ) : (
@@ -393,54 +408,146 @@ function MessageBubble({
     );
 }
 
-function CitationText({
+function MarkdownMessage({
     content,
     citations,
+    user,
     onOpenCitation,
 }: {
     content: string;
     citations: ChatCitation[];
+    user: boolean;
     onOpenCitation: (citation: ChatCitation) => void;
 }) {
-    const parts: ReactNode[] = [];
-    const citationPattern = /\[(\d+)\]/g;
-    let lastIndex = 0;
-    let match: RegExpExecArray | null = citationPattern.exec(content);
+    return (
+        <div className={cn("chat-markdown", user && "chat-markdown-user")}>
+            <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                    a({ href, children, ...props }) {
+                        const citation = getCitationFromHref(href, citations);
 
-    while (match) {
-        const marker = match[0];
-        const id = Number(match[1]);
-        const citation = citations.find((item) => item.id === id);
+                        if (citation) {
+                            return (
+                                <CitationLink
+                                    citation={citation}
+                                    onOpenCitation={onOpenCitation}
+                                >
+                                    {children}
+                                </CitationLink>
+                            );
+                        }
 
-        if (match.index > lastIndex) {
-            parts.push(content.slice(lastIndex, match.index));
+                        return (
+                            <a href={href} {...props}>
+                                {children}
+                            </a>
+                        );
+                    },
+                }}
+            >
+                {linkCitationMarkers(content, citations)}
+            </ReactMarkdown>
+        </div>
+    );
+}
+
+function getCitationFromHref(
+    href: string | undefined,
+    citations: ChatCitation[],
+): ChatCitation | null {
+    if (!href?.startsWith(CITATION_LINK_PREFIX)) return null;
+
+    const id = Number(href.slice(CITATION_LINK_PREFIX.length));
+    return citations.find((item) => item.id === id) ?? null;
+}
+
+function CitationLink({
+    citation,
+    children,
+    onOpenCitation,
+}: {
+    citation: ChatCitation;
+    children: ReactNode;
+    onOpenCitation: (citation: ChatCitation) => void;
+}) {
+    return (
+        <button
+            type="button"
+            title={`${citation.fileName}, page ${citation.page}`}
+            className="chat-citation-link"
+            onClick={(event) => {
+                event.preventDefault();
+                onOpenCitation(citation);
+            }}
+        >
+            {children}
+        </button>
+    );
+}
+
+function linkCitationMarkers(content: string, citations: ChatCitation[]): string {
+    const citationIds = new Set(citations.map((citation) => citation.id));
+    const lines = content.split("\n");
+    let inFence = false;
+
+    return lines
+        .map((line) => {
+            const fence = /^\s*(```+|~~~+)/.test(line);
+            if (fence) {
+                inFence = !inFence;
+                return line;
+            }
+
+            if (inFence) return line;
+            return linkInlineCitationMarkers(line, citationIds);
+        })
+        .join("\n");
+}
+
+function linkInlineCitationMarkers(line: string, citationIds: Set<number>): string {
+    let output = "";
+    let index = 0;
+
+    while (index < line.length) {
+        if (line[index] === "`") {
+            const ticks = countBackticks(line, index);
+            const marker = "`".repeat(ticks);
+            const end = line.indexOf(marker, index + ticks);
+
+            if (end === -1) {
+                output += line.slice(index);
+                break;
+            }
+
+            output += line.slice(index, end + ticks);
+            index = end + ticks;
+            continue;
         }
 
-        if (citation) {
-            parts.push(
-                <button
-                    key={`${match.index}-${marker}`}
-                    type="button"
-                    title={`${citation.fileName}, page ${citation.page}`}
-                    className="mx-0.5 rounded bg-primary/10 px-1 text-xs font-medium text-primary hover:bg-primary/20"
-                    onClick={() => onOpenCitation(citation)}
-                >
-                    {marker}
-                </button>,
-            );
-        } else {
-            parts.push(marker);
-        }
-
-        lastIndex = match.index + marker.length;
-        match = citationPattern.exec(content);
+        const nextCode = line.indexOf("`", index);
+        const end = nextCode === -1 ? line.length : nextCode;
+        output += line
+            .slice(index, end)
+            .replace(/\[(\d+)\](?!\()/g, (marker, rawId: string) => {
+                const id = Number(rawId);
+                if (!citationIds.has(id)) return marker;
+                return `[\\[${id}\\]](${CITATION_LINK_PREFIX}${id})`;
+            });
+        index = end;
     }
 
-    if (lastIndex < content.length) {
-        parts.push(content.slice(lastIndex));
+    return output;
+}
+
+function countBackticks(line: string, start: number): number {
+    let count = 0;
+
+    while (line[start + count] === "`") {
+        count += 1;
     }
 
-    return <>{parts}</>;
+    return count;
 }
 
 function formatSourceCount(count: number): string {
@@ -474,6 +581,7 @@ function ChatComposer({
     onClearSources,
     onClearTextContexts,
     onDraftChange,
+    onRemoveTextContext,
     onSend,
     onToggleSource,
 }: {
@@ -487,99 +595,104 @@ function ChatComposer({
     onClearSources: () => void;
     onClearTextContexts: () => void;
     onDraftChange: (draft: string) => void;
+    onRemoveTextContext: (index: number) => void;
     onSend: () => void;
     onToggleSource: (fileName: string) => void;
 }) {
+    const hasContext = selectedSources.length > 0 || contextTexts.length > 0;
     const canSend =
         Boolean(draft.trim()) &&
         (selectedSourceNames.length > 0 || contextTexts.length > 0);
+    const contextWidgets: MarkdownEditorWidget[] = [
+        ...selectedSources.map((source) => ({
+            id: `source-${source.fileName}`,
+            label: source.fileName,
+            title: source.fileName,
+            kind: "source" as const,
+            onRemove: () => onToggleSource(source.fileName),
+        })),
+        ...contextTexts.map((excerpt, index) => ({
+            id: `excerpt-${excerpt.filePath}-${excerpt.page}-${index}`,
+            label: `Excerpt: ${fileBaseName(excerpt.filePath)} p.${excerpt.page}`,
+            title: excerpt.text,
+            kind: "excerpt" as const,
+            onRemove: () => onRemoveTextContext(index),
+        })),
+    ];
 
     return (
-        <div className="border-t bg-surface-composer px-3 py-2.5">
-            <ContextBar
-                readySources={readySources}
-                selectedSourceNames={selectedSourceNames}
-                selectedSources={selectedSources}
-                contextTexts={contextTexts}
-                onClearSources={onClearSources}
-                onClearTextContexts={onClearTextContexts}
-                onToggleSource={onToggleSource}
-            />
-            <div className="flex items-center gap-2">
-                <Input
+        <div className="border-t bg-surface-composer px-3 py-3">
+            <div className="rounded-2xl border border-border bg-background/70 px-3 py-2 shadow-xs focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20">
+                <ComposerMarkdownEditor
                     value={draft}
-                    onChange={(e) => onDraftChange(e.target.value)}
-                    onKeyDown={(e) => {
-                        if (e.key === "Enter" && !e.shiftKey) {
-                            e.preventDefault();
-                            onSend();
-                        }
-                    }}
-                    placeholder="Ask about your sources..."
-                    className="h-9"
+                    contextWidgets={contextWidgets}
+                    onChange={onDraftChange}
+                    onSend={onSend}
                     disabled={streaming}
                 />
-                <Button
-                    size="icon"
-                    aria-label={streaming ? "Stop response" : "Send message"}
-                    onClick={streaming ? onCancel : onSend}
-                    disabled={!streaming && !canSend}
-                >
-                    {streaming ? (
-                        <Square className="size-4" />
-                    ) : (
-                        <Send className="size-4" />
-                    )}
-                </Button>
+                <div className="mt-1 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1">
+                        <SourceSelector
+                            readySources={readySources}
+                            selectedSourceNames={selectedSourceNames}
+                            onToggleSource={onToggleSource}
+                        />
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="mb-0.5 size-8"
+                            aria-label="Clear context"
+                            onClick={() => {
+                                onClearSources();
+                                onClearTextContexts();
+                            }}
+                            disabled={!hasContext}
+                        >
+                            <X className="size-3.5" />
+                        </Button>
+                    </div>
+                    <Button
+                        size="icon"
+                        aria-label={streaming ? "Stop response" : "Send message"}
+                        onClick={streaming ? onCancel : onSend}
+                        disabled={!streaming && !canSend}
+                        className="mb-0.5 size-8"
+                    >
+                        {streaming ? (
+                            <Square className="size-4" />
+                        ) : (
+                            <Send className="size-4" />
+                        )}
+                    </Button>
+                </div>
             </div>
         </div>
     );
 }
 
-function ContextBar({
-    readySources,
-    selectedSourceNames,
-    selectedSources,
-    contextTexts,
-    onClearSources,
-    onClearTextContexts,
-    onToggleSource,
+function ComposerMarkdownEditor({
+    value,
+    contextWidgets,
+    onChange,
+    onSend,
+    disabled,
 }: {
-    readySources: SourceEntry[];
-    selectedSourceNames: string[];
-    selectedSources: SourceEntry[];
-    contextTexts: TextExcerpt[];
-    onClearSources: () => void;
-    onClearTextContexts: () => void;
-    onToggleSource: (fileName: string) => void;
+    value: string;
+    contextWidgets?: MarkdownEditorWidget[];
+    onChange: (value: string) => void;
+    onSend: () => void;
+    disabled: boolean;
 }) {
-    const hasSources = selectedSources.length > 0;
-    const hasTexts = contextTexts.length > 0;
-
     return (
-        <div className="mb-2 flex items-center gap-1">
-            <SourceSelector
-                readySources={readySources}
-                selectedSourceNames={selectedSourceNames}
-                onToggleSource={onToggleSource}
-            />
-            <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
-                {formatSelectedSources(selectedSources, contextTexts)}
-            </span>
-            <Button
-                variant="ghost"
-                size="icon"
-                className="size-7"
-                aria-label="Clear context"
-                onClick={() => {
-                    onClearSources();
-                    onClearTextContexts();
-                }}
-                disabled={!hasSources && !hasTexts}
-            >
-                <X className="size-3.5" />
-            </Button>
-        </div>
+        <MarkdownEditor
+            value={value}
+            onChange={onChange}
+            onModEnter={onSend}
+            placeholder="Ask about your sources..."
+            readOnly={disabled}
+            topWidgets={contextWidgets}
+            className="chat-markdown-editor"
+        />
     );
 }
 
@@ -629,29 +742,6 @@ function SourceSelector({
     );
 }
 
-function formatSelectedSources(
-    selectedSources: SourceEntry[],
-    contextTexts: TextExcerpt[],
-): string {
-    const parts: string[] = [];
-
-    if (selectedSources.length === 0) {
-        parts.push("No sources selected");
-    } else if (selectedSources.length === 1) {
-        parts.push(`Context: ${selectedSources[0].fileName}`);
-    } else {
-        const firstTwo = selectedSources
-            .slice(0, 2)
-            .map((source) => source.fileName);
-        const extraCount = selectedSources.length - firstTwo.length;
-        parts.push(
-            `Context: ${firstTwo.join(", ")}${extraCount > 0 ? ` +${extraCount}` : ""}`,
-        );
-    }
-
-    if (contextTexts.length > 0) {
-        parts.push(`${contextTexts.length} text excerpt${contextTexts.length > 1 ? "s" : ""}`);
-    }
-
-    return parts.join(" · ");
+function fileBaseName(filePath: string): string {
+    return filePath.split(/[/\\]/).pop() ?? filePath;
 }

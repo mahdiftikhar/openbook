@@ -23,14 +23,14 @@ Running checklist for current polish, known issues, and near-term follow-up work
 - [x] Opening a citation or file from the explorer resizes the opened side panel to 50%. Should not resize if side panel is already open.
 - [ ] Sometimes, a citation shows no highlighted text. Need to check whether the issue is the chunk itself or highlighting logic.
 - [ ] After a note auto-determines its filename via first-line rename, the editor panel loses focus.
-- [ ] Placeholder text says `Start writing...`; replace with something better.
+- [x] Removed note editor placeholder text.
 - [ ] Persist panel sizes.
 - [x] Side panel should not resize if already open when a citation or file is clicked.
 
 ## Editor
 
-- [ ] Pressing Tab in the editor switches browser focus to the next panel instead of inserting a tab character.
-- [ ] Add rendered Markdown support where it gives immediate value, starting with chat output.
+- [x] Pressing Tab in the editor inserts indentation instead of switching browser focus to the next panel.
+- [x] Add rendered Markdown support where it gives immediate value, starting with chat output.
 - [ ] Consider split Markdown preview for notes later.
 
 ## File Management
@@ -47,10 +47,10 @@ Running checklist for current polish, known issues, and near-term follow-up work
 
 ## Chat Interface
 
-- [ ] Chat interface should be keyboard friendly.
-- [ ] Replace the source dropdown with a context tray or chip-based context model.
+- [x] Chat composer supports multiline Markdown input and `Cmd/Ctrl + Enter` send.
+- [x] Show selected sources and excerpts as removable inline context chips in the chat composer.
 - [ ] Remake chat input with `/` and `@` commands for adding sources and tools.
-- [ ] Prompt input and agent responses should support rich text formatting.
+- [x] Prompt input and agent responses support Markdown formatting.
 - [ ] Sources should show as tabs or first-class context items.
 - [ ] Prompts without explicit sources should be possible; the agent should search all available sources to find relevant context.
 - [ ] User notes should be addable to chat context.
@@ -67,5 +67,6 @@ Running checklist for current polish, known issues, and near-term follow-up work
 ## PDF Viewer
 
 - [ ] PDF viewer is page-by-page only; add continuous scrolling.
+- [ ] Sometimes clicking a source/citation opens the PDF but does not highlight the referenced text.
 - [ ] PDF viewer does not support annotations.
 - [ ] PDF viewer needs an `Open in native app` fallback, likely in a right-click/context menu.
