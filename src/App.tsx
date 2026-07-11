@@ -63,7 +63,9 @@ export function App() {
     const [activeNotePath, setActiveNotePath] = useState<string | null>(null);
     const [activePdfPage, setActivePdfPage] = useState<number | null>(null);
     const [highlightText, setHighlightText] = useState<string | null>(null);
-    const [selectedSourceNames, setSelectedSourceNames] = useState<string[]>([]);
+    const [selectedSourceNames, setSelectedSourceNames] = useState<string[]>(
+        [],
+    );
     const [contextTexts, setContextTexts] = useState<TextExcerpt[]>([]);
     const [notesVersion, setNotesVersion] = useState(0);
 
@@ -136,8 +138,7 @@ export function App() {
         setHighlightText(citation.excerpt);
         setActiveNotePath(citation.filePath);
         if (notePanelRef.current?.isCollapsed()) {
-            const fileSize =
-                filePanelRef.current?.getSize().asPercentage ?? 16;
+            const fileSize = filePanelRef.current?.getSize().asPercentage ?? 16;
             notePanelRef.current?.resize(`${(100 - fileSize) / 2}`);
         }
         setNotesOpen(true);

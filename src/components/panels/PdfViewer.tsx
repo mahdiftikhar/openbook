@@ -154,7 +154,10 @@ export function PdfViewer({
         const ctx = hCanvas.getContext("2d");
         if (!ctx) return;
 
-        if (hCanvas.width !== mCanvas.width || hCanvas.height !== mCanvas.height) {
+        if (
+            hCanvas.width !== mCanvas.width ||
+            hCanvas.height !== mCanvas.height
+        ) {
             hCanvas.width = mCanvas.width;
             hCanvas.height = mCanvas.height;
         }
@@ -178,7 +181,12 @@ export function PdfViewer({
                 if (!ctx2) return;
 
                 const segments: {
-                    item: { str: string; width: number; height: number; transform: number[] };
+                    item: {
+                        str: string;
+                        width: number;
+                        height: number;
+                        transform: number[];
+                    };
                     start: number;
                     end: number;
                 }[] = [];
@@ -186,12 +194,19 @@ export function PdfViewer({
 
                 for (const item of textContent.items) {
                     if (!("str" in item)) continue;
-                    const str = (item.str as string).replace(/\s+/g, " ").trim();
+                    const str = (item.str as string)
+                        .replace(/\s+/g, " ")
+                        .trim();
                     if (!str) continue;
                     const start = concat.length;
                     concat += (concat.length > 0 ? " " : "") + str;
                     segments.push({
-                        item: item as { str: string; width: number; height: number; transform: number[] },
+                        item: item as {
+                            str: string;
+                            width: number;
+                            height: number;
+                            transform: number[];
+                        },
                         start,
                         end: concat.length,
                     });
@@ -276,7 +291,12 @@ export function PdfViewer({
                 return;
             }
             const node = selection.anchorNode;
-            if (!node || !(node.parentElement as HTMLElement | null)?.closest(".textLayer")) {
+            if (
+                !node ||
+                !(node.parentElement as HTMLElement | null)?.closest(
+                    ".textLayer",
+                )
+            ) {
                 setSelectionState(null);
                 return;
             }
@@ -290,7 +310,10 @@ export function PdfViewer({
 
         document.addEventListener("selectionchange", handleSelectionChange);
         return () =>
-            document.removeEventListener("selectionchange", handleSelectionChange);
+            document.removeEventListener(
+                "selectionchange",
+                handleSelectionChange,
+            );
     }, []);
 
     const changeZoom = (delta: number) =>
@@ -381,7 +404,10 @@ function PdfToolbar({
                         currentPage={currentPage}
                         onPreviousPage={onPreviousPage}
                     />
-                    <PageIndicator currentPage={currentPage} numPages={numPages} />
+                    <PageIndicator
+                        currentPage={currentPage}
+                        numPages={numPages}
+                    />
                     <NextPageButton
                         currentPage={currentPage}
                         numPages={numPages}
@@ -578,7 +604,9 @@ function PdfErrorMessage({ error }: { error: string }) {
         <div className="flex h-full items-center justify-center p-8 text-center text-sm text-destructive">
             <div className="max-w-sm rounded-xl border border-destructive/20 bg-destructive/10 p-5">
                 <AlertCircle className="mx-auto size-5" />
-                <p className="mt-2 font-medium">This document could not be opened</p>
+                <p className="mt-2 font-medium">
+                    This document could not be opened
+                </p>
                 <p className="mt-1 text-xs opacity-80">{error}</p>
             </div>
         </div>
@@ -599,10 +627,7 @@ function FloatingAddButton({
     const left = Math.max(4, Math.min(x - 48, window.innerWidth - 100));
 
     return (
-        <div
-            className="pointer-events-none fixed z-50"
-            style={{ left, top }}
-        >
+        <div className="pointer-events-none fixed z-50" style={{ left, top }}>
             <button
                 type="button"
                 className="pointer-events-auto flex items-center gap-1 rounded-md bg-popover px-2 py-1 text-xs font-medium text-foreground shadow-md ring-1 ring-border hover:bg-accent"

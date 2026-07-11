@@ -6,7 +6,8 @@ contextBridge.exposeInMainWorld("electron", {
     platform: process.platform,
     workspace: {
         getPath: () => ipcRenderer.invoke(IPC_CHANNELS.workspace.getPath),
-        pickExisting: () => ipcRenderer.invoke(IPC_CHANNELS.workspace.pickExisting),
+        pickExisting: () =>
+            ipcRenderer.invoke(IPC_CHANNELS.workspace.pickExisting),
         createNew: () => ipcRenderer.invoke(IPC_CHANNELS.workspace.createNew),
         clear: () => ipcRenderer.invoke(IPC_CHANNELS.workspace.clear),
         listFiles: (workspacePath: string) =>
@@ -17,7 +18,8 @@ contextBridge.exposeInMainWorld("electron", {
     notes: {
         create: (workspacePath: string) =>
             ipcRenderer.invoke(IPC_CHANNELS.notes.create, workspacePath),
-        read: (filePath: string) => ipcRenderer.invoke(IPC_CHANNELS.notes.read, filePath),
+        read: (filePath: string) =>
+            ipcRenderer.invoke(IPC_CHANNELS.notes.read, filePath),
         write: (filePath: string, content: string) =>
             ipcRenderer.invoke(IPC_CHANNELS.notes.write, filePath, content),
         rename: (oldPath: string, newBaseName: string) =>
@@ -31,8 +33,16 @@ contextBridge.exposeInMainWorld("electron", {
         addPdf: (workspacePath: string) =>
             ipcRenderer.invoke(IPC_CHANNELS.sources.addPdf, workspacePath),
         remove: (workspacePath: string, fileName: string) =>
-            ipcRenderer.invoke(IPC_CHANNELS.sources.remove, workspacePath, fileName),
-        rename: (workspacePath: string, oldFileName: string, newBaseName: string) =>
+            ipcRenderer.invoke(
+                IPC_CHANNELS.sources.remove,
+                workspacePath,
+                fileName,
+            ),
+        rename: (
+            workspacePath: string,
+            oldFileName: string,
+            newBaseName: string,
+        ) =>
             ipcRenderer.invoke(
                 IPC_CHANNELS.sources.rename,
                 workspacePath,
@@ -45,7 +55,8 @@ contextBridge.exposeInMainWorld("electron", {
             ipcRenderer.invoke(IPC_CHANNELS.sources.readFile, filePath),
     },
     chat: {
-        ask: (request: ChatRequest) => ipcRenderer.send(IPC_CHANNELS.chat.ask, request),
+        ask: (request: ChatRequest) =>
+            ipcRenderer.send(IPC_CHANNELS.chat.ask, request),
         cancel: (requestId: string) =>
             ipcRenderer.send(IPC_CHANNELS.chat.cancel, requestId),
         onStream: (callback: (event: ChatStreamEvent) => void) => {

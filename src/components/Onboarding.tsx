@@ -47,7 +47,10 @@ export function Onboarding({ onComplete }: OnboardingProps) {
                 <section className="onboarding-copy max-w-xl">
                     <div className="mb-10 flex items-center gap-3">
                         <span className="brand-mark flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/15">
-                            <BookOpenText className="size-5" strokeWidth={1.8} />
+                            <BookOpenText
+                                className="size-5"
+                                strokeWidth={1.8}
+                            />
                         </span>
                         <div>
                             <div className="text-sm font-semibold tracking-tight">
@@ -66,8 +69,8 @@ export function Onboarding({ onComplete }: OnboardingProps) {
                         Your sources, notes, and questions in one focused space.
                     </h1>
                     <p className="mt-5 max-w-lg text-[15px] leading-7 text-muted-foreground">
-                        Build a library, trace every answer to its source, and keep
-                        the ideas worth returning to.
+                        Build a library, trace every answer to its source, and
+                        keep the ideas worth returning to.
                     </p>
 
                     <div className="mt-9 grid gap-3 sm:grid-cols-2">
@@ -120,7 +123,9 @@ function WorkspaceAction({
             onClick={onClick}
             disabled={loading}
         >
-            <span className={primary ? "text-primary-foreground" : "text-primary"}>
+            <span
+                className={primary ? "text-primary-foreground" : "text-primary"}
+            >
                 {loading && primary ? (
                     <LoaderCircle className="size-5 animate-spin" />
                 ) : (
@@ -185,21 +190,28 @@ function ResearchPreview() {
                 </div>
                 <div className="relative flex flex-col bg-surface-chat">
                     <div className="flex-1 px-7 py-8">
-                        <PreviewLabel icon={<MessageSquareText className="size-3" />}>
+                        <PreviewLabel
+                            icon={<MessageSquareText className="size-3" />}
+                        >
                             Research thread
                         </PreviewLabel>
                         <h2 className="font-display mt-7 text-2xl font-medium leading-tight tracking-tight">
-                            Where do these authors disagree about feedback loops?
+                            Where do these authors disagree about feedback
+                            loops?
                         </h2>
                         <div className="citation-thread mt-8 pl-5">
                             <p className="text-xs leading-6 text-foreground/85">
                                 The disagreement is less about whether feedback
-                                matters, and more about when it becomes legible to
-                                the people inside the system.
+                                matters, and more about when it becomes legible
+                                to the people inside the system.
                             </p>
                             <div className="mt-4 flex gap-2">
-                                <span className="source-token">Meadows · p. 42</span>
-                                <span className="source-token">Dubberly · p. 8</span>
+                                <span className="source-token">
+                                    Meadows · p. 42
+                                </span>
+                                <span className="source-token">
+                                    Dubberly · p. 8
+                                </span>
                             </div>
                         </div>
                     </div>

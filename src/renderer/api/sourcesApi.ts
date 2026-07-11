@@ -1,5 +1,6 @@
 export const sourcesApi = {
-    list: (workspacePath: string) => window.electron.sources.list(workspacePath),
+    list: (workspacePath: string) =>
+        window.electron.sources.list(workspacePath),
     addPdf: (workspacePath: string) =>
         window.electron.sources.addPdf(workspacePath),
     remove: (workspacePath: string, fileName: string) =>

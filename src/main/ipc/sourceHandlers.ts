@@ -16,10 +16,7 @@ import {
     renameSource,
 } from "../services/sourceService";
 
-function handleListSources(
-    _event: IpcMainInvokeEvent,
-    workspacePath: string,
-) {
+function handleListSources(_event: IpcMainInvokeEvent, workspacePath: string) {
     return listSources(workspacePath);
 }
 

@@ -61,7 +61,10 @@ export async function runResearchAgent({
         };
     }
 
-    const localContent = buildLocalResponse(request.question, context.citations);
+    const localContent = buildLocalResponse(
+        request.question,
+        context.citations,
+    );
     const completed = await streamLocalContent({
         content: localContent,
         isActive,

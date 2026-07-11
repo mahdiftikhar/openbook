@@ -1,5 +1,6 @@
 export const notesApi = {
-    create: (workspacePath: string) => window.electron.notes.create(workspacePath),
+    create: (workspacePath: string) =>
+        window.electron.notes.create(workspacePath),
     read: (filePath: string) => window.electron.notes.read(filePath),
     write: (filePath: string, content: string) =>
         window.electron.notes.write(filePath, content),

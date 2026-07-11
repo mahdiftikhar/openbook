@@ -85,7 +85,9 @@ export function PanelTabBar({
                 })}
             </div>
             {actions ? (
-                <div className="flex shrink-0 items-center gap-1 pl-2">{actions}</div>
+                <div className="flex shrink-0 items-center gap-1 pl-2">
+                    {actions}
+                </div>
             ) : null}
         </div>
     );

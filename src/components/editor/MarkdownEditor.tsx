@@ -37,7 +37,7 @@ function buildHeadingDecorations(view: EditorView): DecorationSet {
     const builder = new RangeSetBuilder<Decoration>();
 
     for (const range of view.visibleRanges) {
-        for (let pos = range.from; pos <= range.to; ) {
+        for (let pos = range.from; pos <= range.to;) {
             const line = view.state.doc.lineAt(pos);
             const match = /^(#{1,6})(?:\s|$)/.exec(line.text);
 

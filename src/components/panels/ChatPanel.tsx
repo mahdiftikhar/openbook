@@ -38,11 +38,7 @@ import {
 import { cn } from "@/lib/utils";
 import { chatApi } from "@/renderer/api/chatApi";
 import { sourcesApi } from "@/renderer/api/sourcesApi";
-import type {
-    ChatCitation,
-    SourceEntry,
-    TextExcerpt,
-} from "@/shared/types";
+import type { ChatCitation, SourceEntry, TextExcerpt } from "@/shared/types";
 
 type Message = {
     id: string;
@@ -121,7 +117,10 @@ export function ChatPanel({
                 setMessages((current) =>
                     current.map((message) =>
                         message.id === messageId
-                            ? { ...message, content: message.content + event.text }
+                            ? {
+                                  ...message,
+                                  content: message.content + event.text,
+                              }
                             : message,
                     ),
                 );
@@ -182,7 +181,9 @@ export function ChatPanel({
     const toggleSource = (fileName: string) => {
         onSelectedSourceNamesChange((current) => {
             if (current.includes(fileName)) {
-                return current.filter((selectedName) => selectedName !== fileName);
+                return current.filter(
+                    (selectedName) => selectedName !== fileName,
+                );
             }
             return [...current, fileName];
         });
@@ -275,8 +276,8 @@ export function ChatPanel({
                 onDraftChange={setDraft}
                 onRemoveTextContext={(index) =>
                     onContextTextsChange((current) =>
-                        current.filter((_excerpt, currentIndex) =>
-                            currentIndex !== index,
+                        current.filter(
+                            (_excerpt, currentIndex) => currentIndex !== index,
                         ),
                     )
                 }
@@ -287,11 +288,7 @@ export function ChatPanel({
     );
 }
 
-function ChatHeader({
-    selectedSources,
-}: {
-    selectedSources: SourceEntry[];
-}) {
+function ChatHeader({ selectedSources }: { selectedSources: SourceEntry[] }) {
     const selectedCount = selectedSources.length;
 
     return (
@@ -378,7 +375,10 @@ function EmptyChatState({
                 back to the page it came from.
             </p>
             <p className="mt-3 text-center text-xs text-muted-foreground">
-                {formatEmptyContextMessage(readySourceCount, selectedSourceCount)}
+                {formatEmptyContextMessage(
+                    readySourceCount,
+                    selectedSourceCount,
+                )}
             </p>
             <div className="mt-8 grid gap-2 sm:grid-cols-3">
                 {[
@@ -534,7 +534,10 @@ function CitationLink({
     );
 }
 
-function linkCitationMarkers(content: string, citations: ChatCitation[]): string {
+function linkCitationMarkers(
+    content: string,
+    citations: ChatCitation[],
+): string {
     const citationIds = new Set(citations.map((citation) => citation.id));
     const lines = content.split("\n");
     let inFence = false;
@@ -553,7 +556,10 @@ function linkCitationMarkers(content: string, citations: ChatCitation[]): string
         .join("\n");
 }
 
-function linkInlineCitationMarkers(line: string, citationIds: Set<number>): string {
+function linkInlineCitationMarkers(
+    line: string,
+    citationIds: Set<number>,
+): string {
     let output = "";
     let index = 0;
 
@@ -702,21 +708,25 @@ function ChatComposer({
                     </div>
                     <div className="flex items-center gap-2">
                         <span className="hidden text-[10px] text-muted-foreground/70 sm:inline">
-                            {hasContext ? "⌘↵ to send" : "Add a source to begin"}
+                            {hasContext
+                                ? "⌘↵ to send"
+                                : "Add a source to begin"}
                         </span>
                         <Button
-                        size="icon"
-                        aria-label={streaming ? "Stop response" : "Send message"}
-                        onClick={streaming ? onCancel : onSend}
-                        disabled={!streaming && !canSend}
-                        className="mb-0.5 size-8 rounded-xl shadow-sm"
-                    >
-                        {streaming ? (
-                            <Square className="size-4" />
-                        ) : (
-                            <ArrowUp className="size-4" />
-                        )}
-                    </Button>
+                            size="icon"
+                            aria-label={
+                                streaming ? "Stop response" : "Send message"
+                            }
+                            onClick={streaming ? onCancel : onSend}
+                            disabled={!streaming && !canSend}
+                            className="mb-0.5 size-8 rounded-xl shadow-sm"
+                        >
+                            {streaming ? (
+                                <Square className="size-4" />
+                            ) : (
+                                <ArrowUp className="size-4" />
+                            )}
+                        </Button>
                     </div>
                 </div>
             </div>
@@ -789,8 +799,12 @@ function SourceSelector({
                     readySources.map((source) => (
                         <DropdownMenuCheckboxItem
                             key={source.fileName}
-                            checked={selectedSourceNames.includes(source.fileName)}
-                            onCheckedChange={() => onToggleSource(source.fileName)}
+                            checked={selectedSourceNames.includes(
+                                source.fileName,
+                            )}
+                            onCheckedChange={() =>
+                                onToggleSource(source.fileName)
+                            }
                             onSelect={(event) => event.preventDefault()}
                         >
                             <span className="truncate">{source.fileName}</span>

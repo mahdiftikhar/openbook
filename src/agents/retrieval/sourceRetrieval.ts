@@ -320,7 +320,7 @@ function buildRetrievalQuery(request: ChatRequest): string {
 }
 
 export function normalizeChatContextText(text: string): string {
-     return text.replace(/\s+/g, " ").trim();
+    return text.replace(/\s+/g, " ").trim();
 }
 
 export async function createChatContext(
@@ -328,8 +328,7 @@ export async function createChatContext(
 ): Promise<ChatContext> {
     const sourceFileNames = uniqueSourceFileNames(request.sourceFileNames);
     const hasSources = sourceFileNames.length > 0;
-    const hasTexts =
-        request.contextTexts && request.contextTexts.length > 0;
+    const hasTexts = request.contextTexts && request.contextTexts.length > 0;
 
     if (!hasSources && !hasTexts) {
         throw new Error(

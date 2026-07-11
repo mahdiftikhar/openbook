@@ -71,16 +71,16 @@ async function handleCreateNewWorkspace(): Promise<string | null> {
 }
 
 export function registerWorkspaceHandlers(): void {
-    ipcMain.handle(
-        IPC_CHANNELS.workspace.getPath,
-        handleGetWorkspacePath,
-    );
+    ipcMain.handle(IPC_CHANNELS.workspace.getPath, handleGetWorkspacePath);
     ipcMain.handle(
         IPC_CHANNELS.workspace.pickExisting,
         handlePickExistingWorkspace,
     );
     ipcMain.handle(IPC_CHANNELS.workspace.listFiles, handleListWorkspaceFiles);
-    ipcMain.handle(IPC_CHANNELS.workspace.revealFile, handleRevealWorkspaceFile);
+    ipcMain.handle(
+        IPC_CHANNELS.workspace.revealFile,
+        handleRevealWorkspaceFile,
+    );
     ipcMain.handle(IPC_CHANNELS.workspace.clear, handleClearWorkspacePath);
     ipcMain.handle(IPC_CHANNELS.workspace.createNew, handleCreateNewWorkspace);
 }

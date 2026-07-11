@@ -35,11 +35,13 @@ function buildSourceContext(sources: RetrievedSource[]): string {
     return sources
         .map((source) => {
             const citation = source.citation;
-            return `[${citation.id}] ${citation.fileName}, page ${citation.page}\n${normalizeChatContextText(source.text)}`;
+            return [
+                `[${citation.id}] ${citation.fileName}, page ${citation.page}`,
+                normalizeChatContextText(source.text),
+            ].join("\n");
         })
         .join("\n\n");
 }
-
 
 // API keys picked from .env file
 // Later we'll have some UI to configure API keys and select providers

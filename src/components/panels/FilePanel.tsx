@@ -711,7 +711,9 @@ function FileTree({
                 <div className="mx-2 mt-8 text-center text-muted-foreground">
                     <FileSearch className="mx-auto size-5 opacity-50" />
                     <p className="mt-2 text-xs">
-                        {searching ? "No matching files" : "Your library is empty"}
+                        {searching
+                            ? "No matching files"
+                            : "Your library is empty"}
                     </p>
                 </div>
             )}

@@ -113,7 +113,9 @@ function AppBrand() {
             <span className="flex size-7 items-center justify-center rounded-lg border border-border/70 bg-background/35 text-muted-foreground">
                 <BookOpenText className="size-3.5" strokeWidth={1.9} />
             </span>
-            <span className="text-[13px] font-semibold tracking-tight">openbook</span>
+            <span className="text-[13px] font-semibold tracking-tight">
+                openbook
+            </span>
         </div>
     );
 }
@@ -190,7 +192,9 @@ function ThemeMenu({
                         onClick={() => onThemeChange(theme.id)}
                     >
                         {theme.name}
-                        {theme.id === themeId && <Check className="ml-auto size-4" />}
+                        {theme.id === themeId && (
+                            <Check className="ml-auto size-4" />
+                        )}
                     </DropdownMenuItem>
                 ))}
                 <DropdownMenuSeparator />
@@ -198,12 +202,16 @@ function ThemeMenu({
                 <DropdownMenuItem onClick={() => onThemeModeChange("light")}>
                     <Sun className="size-4" />
                     Light
-                    {themeMode === "light" && <Check className="ml-auto size-4" />}
+                    {themeMode === "light" && (
+                        <Check className="ml-auto size-4" />
+                    )}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onThemeModeChange("dark")}>
                     <Moon className="size-4" />
                     Dark
-                    {themeMode === "dark" && <Check className="ml-auto size-4" />}
+                    {themeMode === "dark" && (
+                        <Check className="ml-auto size-4" />
+                    )}
                 </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>

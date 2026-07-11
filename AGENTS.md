@@ -36,6 +36,10 @@ No test framework or test command exists yet.
 - Path alias `@/` maps to `src/`
 - Current TS version: `~4.5.4` (older, `strict` not set)
 
+## Code Formatting
+
+- After editing code, always format the changed files with the project's existing formatter before the final response.
+
 ## Styling
 
 - **Tailwind CSS v4** — config is entirely in `src/index.css` (`@import "tailwindcss"`, `@theme inline`, `@plugin "tailwindcss-animate"`)
