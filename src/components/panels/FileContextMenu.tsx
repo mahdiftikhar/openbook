@@ -20,6 +20,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import type { FileNode, SourceEntry } from "@/shared/types";
 
 const CONTEXT_MENU_VIEWPORT_MARGIN = 8;
 

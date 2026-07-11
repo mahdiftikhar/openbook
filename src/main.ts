@@ -3,9 +3,10 @@ import path from "node:path";
 import started from "electron-squirrel-startup";
 
 import { loadEnvFiles } from "./env";
-import { registerWorkspaceHandlers } from "./workspace";
-import { registerSourcesHandlers } from "./sources";
-import { registerChatHandlers } from "./chat";
+import { registerChatHandlers } from "./main/ipc/chatHandlers";
+import { registerNoteHandlers } from "./main/ipc/noteHandlers";
+import { registerSourceHandlers } from "./main/ipc/sourceHandlers";
+import { registerWorkspaceHandlers } from "./main/ipc/workspaceHandlers";
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -23,7 +24,10 @@ const createWindow = () => {
         frame: process.platform !== "darwin",
         titleBarStyle: process.platform === "darwin" ? "hidden" : "default",
         ...(process.platform === "darwin"
-            ? { titleBarOverlay: { height: 36 } }
+            ? {
+                  titleBarOverlay: { height: 36 },
+                  trafficLightPosition: { x: 16, y: 12 },
+              }
             : {}),
         title: "openbook",
         webPreferences: {
@@ -53,7 +57,8 @@ const createWindow = () => {
 
 loadEnvFiles();
 registerWorkspaceHandlers();
-registerSourcesHandlers();
+registerNoteHandlers();
+registerSourceHandlers();
 registerChatHandlers();
 
 app.on("ready", createWindow);

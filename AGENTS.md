@@ -14,6 +14,7 @@ Electron + React + TypeScript desktop app (note-taking / research assistant with
     - `renderer` — UI (`index.html` -> `src/renderer.tsx`)
 - Each target has its own Vite config: `vite.main.config.ts`, `vite.preload.config.ts`, `vite.renderer.config.ts`
 - Renderer entry: `index.html` (root) imports `src/renderer.ts` which imports `src/index.css`
+- In `src/main/ipc/`, prefer named handler functions over inline anonymous functions when registering IPC channels. Keep `register*Handlers()` easy to scan as channel-to-handler wiring.
 
 ## Commands
 
@@ -64,4 +65,4 @@ Do not proceed with `npm install` until the user confirms.
 
 - Forge Vite plugin loads configs via `require` — ESM-only Vite plugins (e.g., `@tailwindcss/vite`) will break. Use PostCSS plugin `@tailwindcss/postcss` instead.
 - `postcss.config.js` uses ESM `export default` but `package.json` has no `"type": "module"`. This produces a harmless warning. Do not add `"type": "module"` unless you verify it doesn't break electron-forge.
-- `forge.env.d.ts` exists at root — may contain env type declarations used by Vite builds.
+- `forge.env.d.ts` exists at root — agents always have permission to read and edit it when relevant; it may contain env type declarations used by Vite builds.

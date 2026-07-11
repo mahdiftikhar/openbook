@@ -1,25 +1,20 @@
-import { BrowserWindow, dialog, ipcMain, shell } from "electron";
-import path from "node:path";
 import fs from "node:fs";
+import path from "node:path";
 import { extractText, getDocumentProxy } from "unpdf";
-import { WORKSPACE_DIRS, WORKSPACE_FILES } from "./workspaceLayout";
 
-// Storage layout under workspace/:
-//   WORKSPACE_DIRS.sources/<fileName>.pdf
-//   WORKSPACE_DIRS.metadata/WORKSPACE_DIRS.text/<fileName>.txt
-//   WORKSPACE_DIRS.metadata/WORKSPACE_DIRS.text/<fileName>.pages.json
-//   WORKSPACE_DIRS.metadata/WORKSPACE_FILES.sourcesIndex
+import { WORKSPACE_DIRS, WORKSPACE_FILES } from "../../workspaceLayout";
+import type { SourceEntry } from "../../shared/types";
 
 interface SourcesIndex {
     [fileName: string]: SourceEntry;
 }
 
-interface SourceTextPage {
+export interface SourceTextPage {
     page: number;
     text: string;
 }
 
-function getSourcesDir(workspacePath: string): string {
+export function getSourcesDir(workspacePath: string): string {
     return path.join(workspacePath, WORKSPACE_DIRS.sources);
 }
 
@@ -31,7 +26,14 @@ function getIndexFilePath(workspacePath: string): string {
     );
 }
 
-export function getTextSidecarPath(workspacePath: string, fileName: string): string {
+export function getSourcePath(workspacePath: string, fileName: string): string {
+    return path.join(workspacePath, WORKSPACE_DIRS.sources, fileName);
+}
+
+export function getTextSidecarPath(
+    workspacePath: string,
+    fileName: string,
+): string {
     return path.join(
         workspacePath,
         WORKSPACE_DIRS.metadata,
@@ -40,7 +42,10 @@ export function getTextSidecarPath(workspacePath: string, fileName: string): str
     );
 }
 
-function getPageTextSidecarPath(workspacePath: string, fileName: string): string {
+export function getPageTextSidecarPath(
+    workspacePath: string,
+    fileName: string,
+): string {
     return path.join(
         workspacePath,
         WORKSPACE_DIRS.metadata,
@@ -80,17 +85,33 @@ function uniqueName(dir: string, baseName: string, ext: string): string {
     return candidate;
 }
 
-async function addPdfSource(
-    workspacePath: string,
-): Promise<SourceEntry | null> {
-    const result = await dialog.showOpenDialog({
-        properties: ["openFile"],
-        filters: [{ name: "PDF Files", extensions: ["pdf"] }],
-        title: "Add PDF source",
-    });
-    if (result.canceled || result.filePaths.length === 0) return null;
+export function listSources(workspacePath: string): SourceEntry[] {
+    return Object.values(readIndex(workspacePath));
+}
 
-    const originalPath = result.filePaths[0];
+export function writePageSidecars(
+    workspacePath: string,
+    fileName: string,
+    pages: SourceTextPage[],
+): void {
+    const textPath = getTextSidecarPath(workspacePath, fileName);
+    fs.mkdirSync(path.dirname(textPath), { recursive: true });
+    fs.writeFileSync(
+        textPath,
+        pages.map((page) => page.text).join("\n\n"),
+        "utf-8",
+    );
+    fs.writeFileSync(
+        getPageTextSidecarPath(workspacePath, fileName),
+        JSON.stringify(pages, null, 2),
+        "utf-8",
+    );
+}
+
+export async function addPdfSource(
+    workspacePath: string,
+    originalPath: string,
+): Promise<SourceEntry> {
     const originalName = path.basename(originalPath);
     const baseName = originalName.replace(/\.pdf$/i, "");
 
@@ -102,8 +123,6 @@ async function addPdfSource(
     fs.copyFileSync(originalPath, destPath);
 
     let totalPages = 0;
-    let textContent = "";
-    let pages: SourceTextPage[] = [];
     let extractionError: string | undefined;
 
     try {
@@ -114,19 +133,11 @@ async function addPdfSource(
         const pageTexts = Array.isArray(extracted.text)
             ? extracted.text
             : [extracted.text];
-        pages = pageTexts.map((text, index) => ({
+        const pages = pageTexts.map((text, index) => ({
             page: index + 1,
             text,
         }));
-        textContent = pageTexts.join("\n\n");
-        const sidecarPath = getTextSidecarPath(workspacePath, fileName);
-        fs.mkdirSync(path.dirname(sidecarPath), { recursive: true });
-        fs.writeFileSync(sidecarPath, textContent, "utf-8");
-        fs.writeFileSync(
-            getPageTextSidecarPath(workspacePath, fileName),
-            JSON.stringify(pages, null, 2),
-            "utf-8",
-        );
+        writePageSidecars(workspacePath, fileName, pages);
     } catch (err) {
         extractionError = err instanceof Error ? err.message : String(err);
     }
@@ -147,19 +158,20 @@ async function addPdfSource(
     return entry;
 }
 
-function removeSource(workspacePath: string, fileName: string): boolean {
+export function removeSource(workspacePath: string, fileName: string): boolean {
     const index = readIndex(workspacePath);
     if (!(fileName in index)) return false;
 
-    const sourcesDir = getSourcesDir(workspacePath);
-    const pdfPath = path.join(sourcesDir, fileName);
-    const txtPath = getTextSidecarPath(workspacePath, fileName);
-    const pagesPath = getPageTextSidecarPath(workspacePath, fileName);
-    for (const p of [pdfPath, txtPath, pagesPath]) {
+    const paths = [
+        getSourcePath(workspacePath, fileName),
+        getTextSidecarPath(workspacePath, fileName),
+        getPageTextSidecarPath(workspacePath, fileName),
+    ];
+    for (const filePath of paths) {
         try {
-            fs.rmSync(p);
+            fs.rmSync(filePath);
         } catch {
-            // File may not exist
+            // File may not exist.
         }
     }
 
@@ -168,7 +180,7 @@ function removeSource(workspacePath: string, fileName: string): boolean {
     return true;
 }
 
-function renameSource(
+export function renameSource(
     workspacePath: string,
     oldFileName: string,
     newBaseName: string,
@@ -217,61 +229,14 @@ function renameSource(
     return renamed;
 }
 
-export function registerSourcesHandlers(): void {
-    ipcMain.handle("sources:list", (_event, workspacePath: string) => {
-        return Object.values(readIndex(workspacePath));
-    });
-
-    ipcMain.handle("sources:read-file", async (_event, filePath: string) => {
-        try {
-            const buf = fs.readFileSync(filePath);
-            return buf.buffer.slice(
-                buf.byteOffset,
-                buf.byteOffset + buf.byteLength,
-            );
-        } catch {
-            return null;
-        }
-    });
-
-    ipcMain.handle("sources:open", async (_event, filePath: string) => {
-        if (fs.existsSync(filePath)) {
-            await shell.openPath(filePath);
-        }
-    });
-
-    ipcMain.handle("sources:add-pdf", async (_event, workspacePath: string) => {
-        return addPdfSource(workspacePath);
-    });
-
-    ipcMain.handle(
-        "sources:remove",
-        async (_event, workspacePath: string, fileName: string) => {
-            const choice = await dialog.showMessageBox(
-                BrowserWindow.getFocusedWindow() ?? undefined,
-                {
-                    type: "warning",
-                    buttons: ["Delete", "Cancel"],
-                    defaultId: 1,
-                    title: "Delete source",
-                    message: `Delete "${fileName}"?`,
-                    detail: "This cannot be undone.",
-                },
-            );
-            if (choice.response !== 0) return false;
-            return removeSource(workspacePath, fileName);
-        },
-    );
-
-    ipcMain.handle(
-        "sources:rename",
-        async (
-            _event,
-            workspacePath: string,
-            oldFileName: string,
-            newBaseName: string,
-        ) => {
-            return renameSource(workspacePath, oldFileName, newBaseName);
-        },
-    );
+export function readSourceFile(filePath: string): ArrayBuffer | null {
+    try {
+        const buf = fs.readFileSync(filePath);
+        return buf.buffer.slice(
+            buf.byteOffset,
+            buf.byteOffset + buf.byteLength,
+        ) as ArrayBuffer;
+    } catch {
+        return null;
+    }
 }

@@ -14,6 +14,8 @@ import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
 import { PanelTabBar } from "@/components/panels/PanelTabBar";
 import { Button } from "@/components/ui/button";
+import { sourcesApi } from "@/renderer/api/sourcesApi";
+import type { TextExcerpt } from "@/shared/types";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
@@ -51,7 +53,7 @@ export function PdfViewer({
             setError(null);
 
             try {
-                const buf = await window.electron.sources.readFile(filePath);
+                const buf = await sourcesApi.readFile(filePath);
                 if (cancelled) return;
                 if (!buf) {
                     setError("Could not read file");

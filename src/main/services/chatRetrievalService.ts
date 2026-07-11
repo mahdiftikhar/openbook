@@ -1,17 +1,18 @@
-import { ipcMain, type WebContents } from "electron";
 import fs from "node:fs";
 import path from "node:path";
-import { createDeepSeek } from "@ai-sdk/deepseek";
-import { streamText } from "ai";
 import { extractText, getDocumentProxy } from "unpdf";
 
-import { WORKSPACE_DIRS } from "./workspaceLayout";
-import { getTextSidecarPath } from "./sources";
+import type { ChatCitation, ChatRequest } from "../../shared/types";
+import {
+    getPageTextSidecarPath,
+    getSourcePath,
+    getTextSidecarPath,
+    writePageSidecars,
+    type SourceTextPage,
+} from "./sourceService";
 
 const MAX_CHUNKS = 6;
 const MAX_CHUNK_CHARS = 1200;
-const STREAM_DELAY_MS = 18;
-const DEFAULT_DEEPSEEK_MODEL = "deepseek-chat";
 
 const STOP_WORDS = new Set([
     "about",
@@ -39,11 +40,6 @@ const STOP_WORDS = new Set([
     "would",
 ]);
 
-interface SourceTextPage {
-    page: number;
-    text: string;
-}
-
 interface SourceChunk {
     fileName: string;
     filePath: string;
@@ -57,30 +53,14 @@ interface RankedChunk {
     score: number;
 }
 
-interface RetrievedSource {
+export interface RetrievedSource {
     citation: ChatCitation;
     text: string;
 }
 
-interface ChatContext {
+export interface ChatContext {
     citations: ChatCitation[];
     sources: RetrievedSource[];
-}
-
-const activeRequests = new Set<string>();
-const activeAbortControllers = new Map<string, AbortController>();
-
-function getSourcePath(workspacePath: string, fileName: string): string {
-    return path.join(workspacePath, WORKSPACE_DIRS.sources, fileName);
-}
-
-function getPageTextSidecarPath(workspacePath: string, fileName: string): string {
-    return path.join(
-        workspacePath,
-        WORKSPACE_DIRS.metadata,
-        WORKSPACE_DIRS.text,
-        fileName.replace(/\.pdf$/i, ".pages.json"),
-    );
 }
 
 function cleanText(text: string): string {
@@ -118,25 +98,6 @@ function readSavedPages(filePath: string): SourceTextPage[] {
     } catch {
         return [];
     }
-}
-
-function writePageSidecars(
-    workspacePath: string,
-    fileName: string,
-    pages: SourceTextPage[],
-): void {
-    const textPath = getTextSidecarPath(workspacePath, fileName);
-    fs.mkdirSync(path.dirname(textPath), { recursive: true });
-    fs.writeFileSync(
-        textPath,
-        pages.map((page) => page.text).join("\n\n"),
-        "utf-8",
-    );
-    fs.writeFileSync(
-        getPageTextSidecarPath(workspacePath, fileName),
-        JSON.stringify(pages, null, 2),
-        "utf-8",
-    );
 }
 
 async function extractPdfPages(
@@ -347,33 +308,6 @@ function citationFromRankedChunk(
     };
 }
 
-function summarizeExcerpt(excerpt: string): string {
-    if (excerpt.length <= 260) return excerpt;
-    return `${excerpt.slice(0, 257).trim()}...`;
-}
-
-function buildLocalResponse(question: string, citations: ChatCitation[]): string {
-    const lines = citations.map((citation) => {
-        return `- ${summarizeExcerpt(citation.excerpt)} [${citation.id}]`;
-    });
-
-    return [
-        "LLM provider is not configured yet, so I pulled the most relevant passages from the selected sources.",
-        `Question: ${question}`,
-        "",
-        ...lines,
-    ].join("\n");
-}
-
-function buildSourceContext(sources: RetrievedSource[]): string {
-    return sources
-        .map((source) => {
-            const citation = source.citation;
-            return `[${citation.id}] ${citation.fileName}, page ${citation.page}\n${cleanText(source.text)}`;
-        })
-        .join("\n\n");
-}
-
 function buildRetrievalQuery(request: ChatRequest): string {
     const recentHistory = request.history
         .slice(-6)
@@ -385,43 +319,13 @@ function buildRetrievalQuery(request: ChatRequest): string {
     return [recentHistory, texts, request.question].filter(Boolean).join("\n");
 }
 
-function getDeepSeekApiKey(): string | null {
-    return process.env.DEEPSEEK_API_KEY?.trim() || null;
+export function normalizeChatContextText(text: string): string {
+    return cleanText(text);
 }
 
-function getDeepSeekModel(): string {
-    return process.env.DEEPSEEK_MODEL?.trim() || DEFAULT_DEEPSEEK_MODEL;
-}
-
-function buildModelMessages(
+export async function createChatContext(
     request: ChatRequest,
-    context: ChatContext,
-): { role: "user" | "assistant"; content: string }[] {
-    const history = request.history
-        .slice(-8)
-        .filter((message) => message.content.trim())
-        .map((message) => ({
-            role: message.role,
-            content: message.content,
-        }));
-
-    return [
-        ...history,
-        {
-            role: "user",
-            content: [
-                "Use the source context below to answer the question.",
-                "",
-                "Source context:",
-                buildSourceContext(context.sources),
-                "",
-                `Question: ${request.question}`,
-            ].join("\n"),
-        },
-    ];
-}
-
-async function createChatContext(request: ChatRequest): Promise<ChatContext> {
+): Promise<ChatContext> {
     const sourceFileNames = uniqueSourceFileNames(request.sourceFileNames);
     const hasSources = sourceFileNames.length > 0;
     const hasTexts =
@@ -481,135 +385,4 @@ async function createChatContext(request: ChatRequest): Promise<ChatContext> {
     }
 
     return { citations, sources: sourcesList };
-}
-
-function sendStreamEvent(sender: WebContents, event: ChatStreamEvent): void {
-    if (!sender.isDestroyed()) {
-        sender.send("chat:stream", event);
-    }
-}
-
-function delay(ms: number): Promise<void> {
-    return new Promise((resolve) => {
-        setTimeout(resolve, ms);
-    });
-}
-
-async function streamContent(
-    sender: WebContents,
-    requestId: string,
-    content: string,
-): Promise<boolean> {
-    const tokens = content.match(/\S+\s*/g) ?? [content];
-
-    for (const token of tokens) {
-        if (!activeRequests.has(requestId)) return false;
-        sendStreamEvent(sender, {
-            type: "delta",
-            requestId,
-            text: token,
-        });
-        await delay(STREAM_DELAY_MS);
-    }
-
-    return true;
-}
-
-async function streamDeepSeekAnswer(
-    sender: WebContents,
-    request: ChatRequest,
-    context: ChatContext,
-    abortSignal: AbortSignal,
-): Promise<string | null> {
-    const apiKey = getDeepSeekApiKey();
-    if (!apiKey) return null;
-
-    const deepseek = createDeepSeek({ apiKey });
-    const result = streamText({
-        model: deepseek(getDeepSeekModel()),
-        abortSignal,
-        temperature: 0.2,
-        system: [
-            "You are openbook's research assistant.",
-            "Answer using only the provided source context and recent conversation.",
-            "Cite source-backed claims inline using the exact citation markers from the source context, such as [1].",
-            "If the source context is insufficient, say what is missing instead of guessing.",
-        ].join(" "),
-        messages: buildModelMessages(request, context),
-    });
-
-    let content = "";
-    for await (const text of result.textStream) {
-        if (!activeRequests.has(request.requestId)) return null;
-        content += text;
-        sendStreamEvent(sender, {
-            type: "delta",
-            requestId: request.requestId,
-            text,
-        });
-    }
-
-    return content;
-}
-
-export function registerChatHandlers(): void {
-    ipcMain.on("chat:ask", (event, request: ChatRequest) => {
-        const sender = event.sender;
-        const abortController = new AbortController();
-        activeRequests.add(request.requestId);
-        activeAbortControllers.set(request.requestId, abortController);
-
-        void (async () => {
-            try {
-                const context = await createChatContext(request);
-                if (!activeRequests.has(request.requestId)) return;
-
-                sendStreamEvent(sender, {
-                    type: "start",
-                    requestId: request.requestId,
-                    citations: context.citations,
-                });
-
-                const aiContent = await streamDeepSeekAnswer(
-                    sender,
-                    request,
-                    context,
-                    abortController.signal,
-                );
-                let content = aiContent;
-
-                if (!content) {
-                    content = buildLocalResponse(request.question, context.citations);
-                    const completed = await streamContent(
-                        sender,
-                        request.requestId,
-                        content,
-                    );
-                    if (!completed) return;
-                }
-
-                sendStreamEvent(sender, {
-                    type: "done",
-                    requestId: request.requestId,
-                    content,
-                });
-            } catch (err) {
-                if (!activeRequests.has(request.requestId)) return;
-                sendStreamEvent(sender, {
-                    type: "error",
-                    requestId: request.requestId,
-                    error: err instanceof Error ? err.message : String(err),
-                });
-            } finally {
-                activeRequests.delete(request.requestId);
-                activeAbortControllers.delete(request.requestId);
-            }
-        })();
-    });
-
-    ipcMain.on("chat:cancel", (_event, requestId: string) => {
-        activeRequests.delete(requestId);
-        activeAbortControllers.get(requestId)?.abort();
-        activeAbortControllers.delete(requestId);
-    });
 }

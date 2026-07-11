@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { runtimeApi } from "@/renderer/api/runtimeApi";
 
 import {
     DropdownMenu,
@@ -50,12 +51,12 @@ export function TopBar({
     onSwitchWorkspace: () => void;
     onCloseWorkspace: () => void;
 }) {
-    const isMac = window.electron?.platform === "darwin";
+    const isMac = runtimeApi.platform === "darwin";
     return (
         <header
             className={
-                "drag-region relative flex h-11 shrink-0 items-center gap-2 border-b border-border/70 bg-surface-topbar/95 py-1.5 shadow-[0_1px_0_rgb(255_255_255/0.03)] backdrop-blur-xl " +
-                (isMac ? "pl-[76px] pr-3" : "px-3")
+                "drag-region relative flex h-9 shrink-0 items-center gap-2 border-b border-border/70 bg-surface-topbar/95 py-1 shadow-[0_1px_0_rgb(255_255_255/0.03)] backdrop-blur-xl " +
+                (isMac ? "pl-19 pr-3" : "px-3")
             }
         >
             <FilePanelToggle open={filesOpen} onToggle={onToggleFiles} />
@@ -109,8 +110,8 @@ function FilePanelToggle({
 function AppBrand() {
     return (
         <div className="flex items-center gap-2 pr-0.5">
-            <span className="brand-mark flex size-7 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm shadow-primary/20">
-                <BookOpenText className="size-3.5" strokeWidth={2} />
+            <span className="flex size-7 items-center justify-center rounded-lg border border-border/70 bg-background/35 text-muted-foreground">
+                <BookOpenText className="size-3.5" strokeWidth={1.9} />
             </span>
             <span className="text-[13px] font-semibold tracking-tight">openbook</span>
         </div>

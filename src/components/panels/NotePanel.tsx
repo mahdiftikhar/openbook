@@ -3,6 +3,7 @@ import { Check, FileText, PenLine } from "lucide-react";
 
 import { MarkdownEditor } from "@/components/editor/MarkdownEditor";
 import { PanelTabBar } from "@/components/panels/PanelTabBar";
+import { notesApi } from "@/renderer/api/notesApi";
 
 const AUTOSAVE_DELAY = 600;
 
@@ -37,7 +38,7 @@ export function NotePanel({
             setLoaded(true);
             return;
         }
-        window.electron.notes.read(notePath).then((text) => {
+        notesApi.read(notePath).then((text) => {
             if (currentPathRef.current !== notePath) return;
             setContent(text ?? "");
             setLoaded(true);
@@ -49,17 +50,17 @@ export function NotePanel({
         if (base.startsWith("untitled-")) {
             const head = firstName(text);
             if (head) {
-                const renamed = await window.electron.notes.rename(path, head);
+                const renamed = await notesApi.rename(path, head);
                 if (renamed) {
                     currentPathRef.current = renamed;
                     onChangeNotePath(renamed);
                     onNotesChanged();
-                    await window.electron.notes.write(renamed, text);
+                    await notesApi.write(renamed, text);
                     return;
                 }
             }
         }
-        await window.electron.notes.write(path, text);
+        await notesApi.write(path, text);
     };
 
     useEffect(() => {

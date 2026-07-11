@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { workspaceApi } from "@/renderer/api/workspaceApi";
 
 interface OnboardingProps {
     onComplete: (workspacePath: string) => void;
@@ -22,7 +23,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
     const handlePickExisting = async () => {
         setLoading(true);
         try {
-            const result = await window.electron.workspace.pickExisting();
+            const result = await workspaceApi.pickExisting();
             if (result) onComplete(result);
         } finally {
             setLoading(false);
@@ -32,7 +33,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
     const handleCreateNew = async () => {
         setLoading(true);
         try {
-            const result = await window.electron.workspace.createNew();
+            const result = await workspaceApi.createNew();
             if (result) onComplete(result);
         } finally {
             setLoading(false);
@@ -147,7 +148,7 @@ function WorkspaceAction({
 function ResearchPreview() {
     return (
         <section
-            className="onboarding-preview relative hidden min-h-[490px] overflow-hidden rounded-[1.75rem] border border-border/70 bg-card shadow-2xl shadow-black/10 lg:block"
+            className="onboarding-preview relative hidden min-h-122.5 overflow-hidden rounded-[1.75rem] border border-border/70 bg-card shadow-2xl shadow-black/10 lg:block"
             aria-label="Openbook workspace preview"
         >
             <div className="flex h-11 items-center gap-2 border-b bg-surface-topbar px-4">
@@ -159,7 +160,7 @@ function ResearchPreview() {
                     3 sources connected
                 </span>
             </div>
-            <div className="grid h-[445px] grid-cols-[132px_1fr]">
+            <div className="grid h-111.25 grid-cols-[132px_1fr]">
                 <div className="border-r bg-surface-files p-3">
                     <PreviewLabel icon={<FileSearch className="size-3" />}>
                         Library
@@ -216,7 +217,7 @@ function ResearchPreview() {
                     </div>
                 </div>
             </div>
-            <Quote className="absolute right-5 top-16 size-14 text-primary/[0.05]" />
+            <Quote className="absolute right-5 top-16 size-14 text-primary/5" />
         </section>
     );
 }

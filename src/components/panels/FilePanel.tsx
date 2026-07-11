@@ -26,6 +26,10 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { notesApi } from "@/renderer/api/notesApi";
+import { sourcesApi } from "@/renderer/api/sourcesApi";
+import { workspaceApi } from "@/renderer/api/workspaceApi";
+import type { FileNode, SourceEntry } from "@/shared/types";
 import { FileContextMenu } from "./FileContextMenu";
 
 const MAX_COPY_PATH_ATTEMPTS = 100;
@@ -42,7 +46,7 @@ async function findCopyPath(
     for (let counter = 1; counter <= MAX_COPY_PATH_ATTEMPTS; counter++) {
         const suffix = counter === 1 ? "_copy" : `_copy_${counter}`;
         const newPath = `${targetDir}/${baseName}${suffix}${ext}`;
-        if ((await window.electron.notes.read(newPath)) === null) {
+        if ((await notesApi.read(newPath)) === null) {
             return newPath;
         }
     }
@@ -82,8 +86,8 @@ export function FilePanel({
     const [copiedFilePath, setCopiedFilePath] = useState<string | null>(null);
 
     useEffect(() => {
-        window.electron.workspace.listFiles(workspacePath).then(setTree);
-        window.electron.sources.list(workspacePath).then(setSourceEntries);
+        workspaceApi.listFiles(workspacePath).then(setTree);
+        sourcesApi.list(workspacePath).then(setSourceEntries);
     }, [workspacePath, refreshKey, localVersion]);
 
     const sourceMap = useMemo(() => {
@@ -109,13 +113,13 @@ export function FilePanel({
     );
 
     const handleNew = async () => {
-        const filePath = await window.electron.notes.create(workspacePath);
+        const filePath = await notesApi.create(workspacePath);
         onOpenNote(filePath);
         onNotesChanged();
     };
 
     const handleAddPdf = async () => {
-        const entry = await window.electron.sources.addPdf(workspacePath);
+        const entry = await sourcesApi.addPdf(workspacePath);
         if (entry) {
             setLocalVersion((v) => v + 1);
             onNotesChanged();
@@ -131,7 +135,7 @@ export function FilePanel({
     };
 
     const handleDeleteSource = async (fileName: string) => {
-        await window.electron.sources.remove(workspacePath, fileName);
+        await sourcesApi.remove(workspacePath, fileName);
         removeSourceFromContext(fileName);
         if (activeFileName === fileName) onOpenNote(null);
         setLocalVersion((v) => v + 1);
@@ -139,7 +143,7 @@ export function FilePanel({
     };
 
     const handleDeleteNote = async (filePath: string) => {
-        const ok = await window.electron.notes.delete(filePath);
+        const ok = await notesApi.delete(filePath);
         if (!ok) return;
         if (activeNotePath === filePath) onOpenNote(null);
         setLocalVersion((v) => v + 1);
@@ -160,7 +164,7 @@ export function FilePanel({
     }, []);
 
     const handleRevealFile = useCallback(async (filePath: string) => {
-        await window.electron.workspace.revealFile(filePath);
+        await workspaceApi.revealFile(filePath);
     }, []);
 
     const handleToggleSourceContext = (fileName: string) => {
@@ -205,7 +209,7 @@ export function FilePanel({
 
             const sourceEntry = sourceMap[node.name];
             if (sourceEntry) {
-                const renamed = await window.electron.sources.rename(
+                const renamed = await sourcesApi.rename(
                     workspacePath,
                     node.name,
                     newBaseName.trim(),
@@ -226,7 +230,7 @@ export function FilePanel({
                 return;
             }
 
-            const renamedPath = await window.electron.notes.rename(
+            const renamedPath = await notesApi.rename(
                 filePath,
                 newBaseName.trim(),
             );
@@ -252,13 +256,13 @@ export function FilePanel({
     const handlePasteFile = useCallback(
         async (targetDir: string) => {
             if (!copiedFilePath) return;
-            const content = await window.electron.notes.read(copiedFilePath);
+            const content = await notesApi.read(copiedFilePath);
             if (content === null) return;
 
             const newPath = await findCopyPath(copiedFilePath, targetDir);
             if (newPath === null) return;
 
-            const success = await window.electron.notes.write(newPath, content);
+            const success = await notesApi.write(newPath, content);
             if (success) {
                 setLocalVersion((v) => v + 1);
                 onNotesChanged();
@@ -269,14 +273,14 @@ export function FilePanel({
 
     const handleDuplicateFile = useCallback(
         async (filePath: string) => {
-            const content = await window.electron.notes.read(filePath);
+            const content = await notesApi.read(filePath);
             if (content === null) return;
 
             const dir = filePath.substring(0, filePath.lastIndexOf("/"));
             const newPath = await findCopyPath(filePath, dir);
             if (newPath === null) return;
 
-            const success = await window.electron.notes.write(newPath, content);
+            const success = await notesApi.write(newPath, content);
             if (success) {
                 setLocalVersion((v) => v + 1);
                 onNotesChanged();

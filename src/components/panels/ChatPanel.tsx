@@ -36,6 +36,13 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { chatApi } from "@/renderer/api/chatApi";
+import { sourcesApi } from "@/renderer/api/sourcesApi";
+import type {
+    ChatCitation,
+    SourceEntry,
+    TextExcerpt,
+} from "@/shared/types";
 
 type Message = {
     id: string;
@@ -75,7 +82,7 @@ export function ChatPanel({
     useEffect(() => {
         let active = true;
 
-        window.electron.sources.list(workspacePath).then((entries) => {
+        sourcesApi.list(workspacePath).then((entries) => {
             if (!active) return;
             setSources(entries);
 
@@ -93,7 +100,7 @@ export function ChatPanel({
     }, [workspacePath, sourcesRefreshKey, onSelectedSourceNamesChange]);
 
     useEffect(() => {
-        const unsubscribe = window.electron.chat.onStream((event) => {
+        const unsubscribe = chatApi.onStream((event) => {
             if (event.requestId !== activeRequestRef.current) return;
 
             const messageId = activeAssistantMessageRef.current;
@@ -158,7 +165,7 @@ export function ChatPanel({
         return () => {
             unsubscribe();
             const requestId = activeRequestRef.current;
-            if (requestId) window.electron.chat.cancel(requestId);
+            if (requestId) chatApi.cancel(requestId);
         };
     }, []);
 
@@ -215,7 +222,7 @@ export function ChatPanel({
         ]);
         setDraft("");
         setStreaming(true);
-        window.electron.chat.ask({
+        chatApi.ask({
             requestId,
             workspacePath,
             question: text,
@@ -229,7 +236,7 @@ export function ChatPanel({
         const requestId = activeRequestRef.current;
         const messageId = activeAssistantMessageRef.current;
         if (!requestId) return;
-        window.electron.chat.cancel(requestId);
+        chatApi.cancel(requestId);
         activeRequestRef.current = null;
         activeAssistantMessageRef.current = null;
         setStreaming(false);
@@ -363,7 +370,7 @@ function EmptyChatState({
             <p className="mt-5 text-center text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">
                 Grounded in your library
             </p>
-            <h3 className="font-display mt-2 text-center text-3xl font-medium leading-tight tracking-[-0.025em]">
+            <h3 className="font-display mt-2 text-center text-3xl font-medium leading-tight tracking-tight">
                 What are you trying to understand?
             </h3>
             <p className="mx-auto mt-3 max-w-md text-center text-sm leading-6 text-muted-foreground">

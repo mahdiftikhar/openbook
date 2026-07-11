@@ -1,58 +1,61 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from "electron";
+import { IPC_CHANNELS } from "./shared/ipcChannels";
+import type { ChatRequest, ChatStreamEvent } from "./shared/types";
 
 contextBridge.exposeInMainWorld("electron", {
     platform: process.platform,
     workspace: {
-        getPath: () => ipcRenderer.invoke("workspace:get-path"),
-        pickExisting: () => ipcRenderer.invoke("workspace:pick-existing"),
-        createNew: () => ipcRenderer.invoke("workspace:create-new"),
-        clear: () => ipcRenderer.invoke("workspace:clear"),
+        getPath: () => ipcRenderer.invoke(IPC_CHANNELS.workspace.getPath),
+        pickExisting: () => ipcRenderer.invoke(IPC_CHANNELS.workspace.pickExisting),
+        createNew: () => ipcRenderer.invoke(IPC_CHANNELS.workspace.createNew),
+        clear: () => ipcRenderer.invoke(IPC_CHANNELS.workspace.clear),
         listFiles: (workspacePath: string) =>
-            ipcRenderer.invoke("workspace:list-files", workspacePath),
+            ipcRenderer.invoke(IPC_CHANNELS.workspace.listFiles, workspacePath),
         revealFile: (filePath: string) =>
-            ipcRenderer.invoke("workspace:reveal-file", filePath),
+            ipcRenderer.invoke(IPC_CHANNELS.workspace.revealFile, filePath),
     },
     notes: {
         create: (workspacePath: string) =>
-            ipcRenderer.invoke("notes:create", workspacePath),
-        read: (filePath: string) => ipcRenderer.invoke("notes:read", filePath),
+            ipcRenderer.invoke(IPC_CHANNELS.notes.create, workspacePath),
+        read: (filePath: string) => ipcRenderer.invoke(IPC_CHANNELS.notes.read, filePath),
         write: (filePath: string, content: string) =>
-            ipcRenderer.invoke("notes:write", filePath, content),
+            ipcRenderer.invoke(IPC_CHANNELS.notes.write, filePath, content),
         rename: (oldPath: string, newBaseName: string) =>
-            ipcRenderer.invoke("notes:rename", oldPath, newBaseName),
+            ipcRenderer.invoke(IPC_CHANNELS.notes.rename, oldPath, newBaseName),
         delete: (filePath: string) =>
-            ipcRenderer.invoke("notes:delete", filePath),
+            ipcRenderer.invoke(IPC_CHANNELS.notes.delete, filePath),
     },
     sources: {
         list: (workspacePath: string) =>
-            ipcRenderer.invoke("sources:list", workspacePath),
+            ipcRenderer.invoke(IPC_CHANNELS.sources.list, workspacePath),
         addPdf: (workspacePath: string) =>
-            ipcRenderer.invoke("sources:add-pdf", workspacePath),
+            ipcRenderer.invoke(IPC_CHANNELS.sources.addPdf, workspacePath),
         remove: (workspacePath: string, fileName: string) =>
-            ipcRenderer.invoke("sources:remove", workspacePath, fileName),
+            ipcRenderer.invoke(IPC_CHANNELS.sources.remove, workspacePath, fileName),
         rename: (workspacePath: string, oldFileName: string, newBaseName: string) =>
             ipcRenderer.invoke(
-                "sources:rename",
+                IPC_CHANNELS.sources.rename,
                 workspacePath,
                 oldFileName,
                 newBaseName,
             ),
         open: (filePath: string) =>
-            ipcRenderer.invoke("sources:open", filePath),
+            ipcRenderer.invoke(IPC_CHANNELS.sources.open, filePath),
         readFile: (filePath: string) =>
-            ipcRenderer.invoke("sources:read-file", filePath),
+            ipcRenderer.invoke(IPC_CHANNELS.sources.readFile, filePath),
     },
     chat: {
-        ask: (request: ChatRequest) => ipcRenderer.send("chat:ask", request),
+        ask: (request: ChatRequest) => ipcRenderer.send(IPC_CHANNELS.chat.ask, request),
         cancel: (requestId: string) =>
-            ipcRenderer.send("chat:cancel", requestId),
+            ipcRenderer.send(IPC_CHANNELS.chat.cancel, requestId),
         onStream: (callback: (event: ChatStreamEvent) => void) => {
             const listener = (
                 _event: IpcRendererEvent,
                 payload: ChatStreamEvent,
             ) => callback(payload);
-            ipcRenderer.on("chat:stream", listener);
-            return () => ipcRenderer.removeListener("chat:stream", listener);
+            ipcRenderer.on(IPC_CHANNELS.chat.stream, listener);
+            return () =>
+                ipcRenderer.removeListener(IPC_CHANNELS.chat.stream, listener);
         },
     },
 });

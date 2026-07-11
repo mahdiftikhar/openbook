@@ -8,6 +8,8 @@ import { NotePanel } from "@/components/panels/NotePanel";
 import { PdfViewer } from "@/components/panels/PdfViewer";
 import { ChatPanel } from "@/components/panels/ChatPanel";
 import { Onboarding } from "@/components/Onboarding";
+import { workspaceApi } from "@/renderer/api/workspaceApi";
+import type { ChatCitation, TextExcerpt } from "@/shared/types";
 import {
     DEFAULT_THEME_ID,
     DEFAULT_THEME_MODE,
@@ -78,7 +80,7 @@ export function App() {
     }, [themeId, themeMode]);
 
     useEffect(() => {
-        window.electron.workspace.getPath().then((savedPath) => {
+        workspaceApi.getPath().then((savedPath) => {
             setWorkspacePath(savedPath);
             setCheckingWorkspace(false);
         });
@@ -101,12 +103,12 @@ export function App() {
     }
 
     const handleSwitchWorkspace = async () => {
-        const newPath = await window.electron.workspace.pickExisting();
+        const newPath = await workspaceApi.pickExisting();
         if (newPath) setWorkspacePath(newPath);
     };
 
     const handleCloseWorkspace = async () => {
-        await window.electron.workspace.clear();
+        await workspaceApi.clear();
         setWorkspacePath(null);
         setActiveNotePath(null);
         setActivePdfPage(null);
@@ -167,7 +169,7 @@ export function App() {
                 <Group orientation="horizontal" className="h-full w-full">
                     <Panel
                         panelRef={filePanelRef}
-                        defaultSize="16%"
+                        defaultSize="14%"
                         minSize="12%"
                         maxSize="26%"
                         collapsible
