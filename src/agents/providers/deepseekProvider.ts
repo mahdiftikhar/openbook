@@ -6,7 +6,7 @@ import {
     normalizeChatContextText,
     type ChatContext,
     type RetrievedSource,
-} from "./chatRetrievalService";
+} from "../retrieval/sourceRetrieval";
 
 const DEFAULT_DEEPSEEK_MODEL = "deepseek-chat";
 
@@ -40,10 +40,17 @@ function buildSourceContext(sources: RetrievedSource[]): string {
         .join("\n\n");
 }
 
+
+// API keys picked from .env file
+// Later we'll have some UI to configure API keys and select providers
+// in which case API keys will be stored in .openbook folder? (or somewhere safe)
 function getDeepSeekApiKey(): string | null {
     return process.env.DEEPSEEK_API_KEY?.trim() || null;
 }
 
+// Model picked from .env file
+// Later we'll have some UI to configure API keys and select providers
+// in which case API keys will be stored in .openbook folder? (or somewhere safe)
 function getDeepSeekModel(): string {
     return process.env.DEEPSEEK_MODEL?.trim() || DEFAULT_DEEPSEEK_MODEL;
 }
@@ -76,7 +83,7 @@ function buildModelMessages(
     ];
 }
 
-export async function streamDeepSeekAnswer({
+export async function streamDeepSeekCompletion({
     request,
     context,
     abortSignal,

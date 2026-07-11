@@ -9,7 +9,7 @@ import {
     getTextSidecarPath,
     writePageSidecars,
     type SourceTextPage,
-} from "./sourceService";
+} from "../../main/services/sourceService";
 
 const MAX_CHUNKS = 6;
 const MAX_CHUNK_CHARS = 1200;
@@ -320,7 +320,7 @@ function buildRetrievalQuery(request: ChatRequest): string {
 }
 
 export function normalizeChatContextText(text: string): string {
-    return cleanText(text);
+     return text.replace(/\s+/g, " ").trim();
 }
 
 export async function createChatContext(

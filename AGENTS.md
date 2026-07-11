@@ -15,6 +15,7 @@ Electron + React + TypeScript desktop app (note-taking / research assistant with
 - Each target has its own Vite config: `vite.main.config.ts`, `vite.preload.config.ts`, `vite.renderer.config.ts`
 - Renderer entry: `index.html` (root) imports `src/renderer.ts` which imports `src/index.css`
 - In `src/main/ipc/`, prefer named handler functions over inline anonymous functions when registering IPC channels. Keep `register*Handlers()` easy to scan as channel-to-handler wiring.
+- Agent logic belongs in `src/agents/`. Keep agents programmatically callable for tests/evaluations; they may call main-process services, but must not depend on Electron IPC, renderer components, or `window.electron`.
 
 ## Commands
 

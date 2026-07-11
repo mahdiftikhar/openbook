@@ -1,14 +1,8 @@
 import { ipcMain, type IpcMainEvent, type WebContents } from "electron";
 
+import { runResearchAgent } from "../../agents";
 import { IPC_CHANNELS } from "../../shared/ipcChannels";
 import type { ChatRequest, ChatStreamEvent } from "../../shared/types";
-import {
-    buildLocalResponse,
-    streamDeepSeekAnswer,
-} from "../services/chatProviderService";
-import { createChatContext } from "../services/chatRetrievalService";
-
-const STREAM_DELAY_MS = 18;
 
 const activeRequests = new Set<string>();
 const activeAbortControllers = new Map<string, AbortController>();
@@ -19,52 +13,23 @@ function sendStreamEvent(sender: WebContents, event: ChatStreamEvent): void {
     }
 }
 
-function delay(ms: number): Promise<void> {
-    return new Promise((resolve) => {
-        setTimeout(resolve, ms);
-    });
-}
-
-async function streamContent(
-    sender: WebContents,
-    requestId: string,
-    content: string,
-): Promise<boolean> {
-    const tokens = content.match(/\S+\s*/g) ?? [content];
-
-    for (const token of tokens) {
-        if (!activeRequests.has(requestId)) return false;
-        sendStreamEvent(sender, {
-            type: "delta",
-            requestId,
-            text: token,
-        });
-        await delay(STREAM_DELAY_MS);
-    }
-
-    return true;
-}
-
 async function runChatRequest(
     sender: WebContents,
     request: ChatRequest,
     abortController: AbortController,
 ): Promise<void> {
     try {
-        const context = await createChatContext(request);
-        if (!activeRequests.has(request.requestId)) return;
-
-        sendStreamEvent(sender, {
-            type: "start",
-            requestId: request.requestId,
-            citations: context.citations,
-        });
-
-        const aiContent = await streamDeepSeekAnswer({
+        const result = await runResearchAgent({
             request,
-            context,
             abortSignal: abortController.signal,
             isActive: () => activeRequests.has(request.requestId),
+            onStart: (citations) => {
+                sendStreamEvent(sender, {
+                    type: "start",
+                    requestId: request.requestId,
+                    citations,
+                });
+            },
             onDelta: (text) => {
                 sendStreamEvent(sender, {
                     type: "delta",
@@ -73,22 +38,12 @@ async function runChatRequest(
                 });
             },
         });
-        let content = aiContent;
-
-        if (!content) {
-            content = buildLocalResponse(request.question, context.citations);
-            const completed = await streamContent(
-                sender,
-                request.requestId,
-                content,
-            );
-            if (!completed) return;
-        }
+        if (!result) return;
 
         sendStreamEvent(sender, {
             type: "done",
             requestId: request.requestId,
-            content,
+            content: result.content,
         });
     } catch (err) {
         if (!activeRequests.has(request.requestId)) return;
