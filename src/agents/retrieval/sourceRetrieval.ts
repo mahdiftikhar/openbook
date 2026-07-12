@@ -363,6 +363,11 @@ export async function createChatContext(
         }
     }
 
+    // TODO:
+    // Excerpts should be considered more as "Context"
+    // rather than a source.
+    // Eventually the agent would take in that context and that
+    // would become part of the prompt
     if (hasTexts) {
         const excerpts = request.contextTexts;
         for (const excerpt of excerpts) {

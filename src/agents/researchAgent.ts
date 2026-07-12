@@ -65,6 +65,7 @@ export async function runResearchAgent({
         request.question,
         context.citations,
     );
+
     const completed = await streamLocalContent({
         content: localContent,
         isActive,
