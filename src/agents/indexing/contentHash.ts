@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
 
-export function createContentHash(content: string): string {
+export function createContentHash(content: string | Buffer): string {
     return createHash("sha256").update(content).digest("hex");
 }

@@ -14,6 +14,32 @@ export interface SourceEntry {
     error?: string;
 }
 
+export type IndexingErrorCode =
+    | "authentication"
+    | "configuration"
+    | "network"
+    | "quota"
+    | "rate_limit"
+    | "provider"
+    | "database"
+    | "content";
+
+export interface IndexingIssue {
+    code: IndexingErrorCode;
+    message: string;
+    retryable: boolean;
+}
+
+export interface IndexReconciliationResult {
+    status: "complete" | "partial" | "blocked";
+    indexed: number;
+    updated: number;
+    removed: number;
+    unchanged: number;
+    failed: number;
+    issue?: IndexingIssue;
+}
+
 export interface ChatHistoryMessage {
     role: "user" | "assistant";
     content: string;
@@ -73,6 +99,9 @@ export interface ElectronApi {
         clear: () => Promise<void>;
         listFiles: (workspacePath: string) => Promise<FileNode[]>;
         revealFile: (filePath: string) => Promise<void>;
+        reconcileIndex: (
+            workspacePath: string,
+        ) => Promise<IndexReconciliationResult>;
     };
     notes: {
         create: (workspacePath: string) => Promise<string>;

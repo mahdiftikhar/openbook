@@ -14,6 +14,11 @@ contextBridge.exposeInMainWorld("electron", {
             ipcRenderer.invoke(IPC_CHANNELS.workspace.listFiles, workspacePath),
         revealFile: (filePath: string) =>
             ipcRenderer.invoke(IPC_CHANNELS.workspace.revealFile, filePath),
+        reconcileIndex: (workspacePath: string) =>
+            ipcRenderer.invoke(
+                IPC_CHANNELS.workspace.reconcileIndex,
+                workspacePath,
+            ),
     },
     notes: {
         create: (workspacePath: string) =>

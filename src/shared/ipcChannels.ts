@@ -6,6 +6,7 @@ export const IPC_CHANNELS = {
         clear: "workspace:clear",
         listFiles: "workspace:list-files",
         revealFile: "workspace:reveal-file",
+        reconcileIndex: "workspace:reconcile-index",
     },
     notes: {
         create: "notes:create",

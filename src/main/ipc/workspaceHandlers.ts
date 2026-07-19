@@ -2,6 +2,7 @@ import { dialog, ipcMain, shell, type IpcMainInvokeEvent } from "electron";
 import fs from "node:fs";
 
 import { IPC_CHANNELS } from "../../shared/ipcChannels";
+import { reconcileWorkspaceIndex } from "../../agents/indexing/indexService";
 import { REQUIRED_WORKSPACE_DIRS } from "../../workspaceLayout";
 import {
     clearSavedWorkspacePath,
@@ -53,6 +54,13 @@ function handleRevealWorkspaceFile(
     if (fs.existsSync(filePath)) shell.showItemInFolder(filePath);
 }
 
+function handleReconcileWorkspaceIndex(
+    _event: IpcMainInvokeEvent,
+    workspacePath: string,
+) {
+    return reconcileWorkspaceIndex(workspacePath);
+}
+
 function handleClearWorkspacePath(): void {
     clearSavedWorkspacePath();
 }
@@ -77,6 +85,10 @@ export function registerWorkspaceHandlers(): void {
         handlePickExistingWorkspace,
     );
     ipcMain.handle(IPC_CHANNELS.workspace.listFiles, handleListWorkspaceFiles);
+    ipcMain.handle(
+        IPC_CHANNELS.workspace.reconcileIndex,
+        handleReconcileWorkspaceIndex,
+    );
     ipcMain.handle(
         IPC_CHANNELS.workspace.revealFile,
         handleRevealWorkspaceFile,

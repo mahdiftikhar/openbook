@@ -1,6 +1,5 @@
 import fs from "node:fs";
 import path from "node:path";
-import { extractText, getDocumentProxy } from "unpdf";
 
 import {
     indexSource,
@@ -9,6 +8,7 @@ import {
 } from "../../agents/indexing/indexService";
 import { WORKSPACE_DIRS, WORKSPACE_FILES } from "../../workspaceLayout";
 import type { SourceEntry } from "../../shared/types";
+import { extractPdfText } from "./pdfTextService";
 
 interface SourcesIndex {
     [fileName: string]: SourceEntry;
@@ -132,17 +132,9 @@ export async function addPdfSource(
     let pages: SourceTextPage[] = [];
 
     try {
-        const buffer = fs.readFileSync(destPath);
-        const pdf = await getDocumentProxy(new Uint8Array(buffer));
-        const extracted = await extractText(pdf, { mergePages: false });
+        const extracted = await extractPdfText(destPath);
         totalPages = extracted.totalPages;
-        const pageTexts = Array.isArray(extracted.text)
-            ? extracted.text
-            : [extracted.text];
-        pages = pageTexts.map((text, index) => ({
-            page: index + 1,
-            text,
-        }));
+        pages = extracted.pages;
         writePageSidecars(workspacePath, fileName, pages);
     } catch (err) {
         extractionError = err instanceof Error ? err.message : String(err);

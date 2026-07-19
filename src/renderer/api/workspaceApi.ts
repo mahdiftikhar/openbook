@@ -7,4 +7,6 @@ export const workspaceApi = {
         window.electron.workspace.listFiles(workspacePath),
     revealFile: (filePath: string) =>
         window.electron.workspace.revealFile(filePath),
+    reconcileIndex: (workspacePath: string) =>
+        window.electron.workspace.reconcileIndex(workspacePath),
 };
