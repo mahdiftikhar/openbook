@@ -31,6 +31,7 @@
         "@electron/fuses": "^1.8.0",
         "@tailwindcss/language-server": "^0.14.29",
         "@tailwindcss/postcss": "^4.3.2",
+        "@types/better-sqlite3": "^7.6.13",
         "@types/electron-squirrel-startup": "^1.0.2",
         "@types/react": "^19.2.17",
         "@types/react-dom": "^19.2.3",
@@ -63,7 +64,9 @@
         "@radix-ui/react-slot": "^1.3.0",
         "@radix-ui/react-tabs": "^1.1.16",
         "ai": "^7.0.15",
+        "better-sqlite3": "^12.11.1",
         "dotenv": "^17.4.2",
+        "drizzle-orm": "^0.24.5",
         "electron-squirrel-startup": "^1.0.1",
         "pdfjs-dist": "^6.1.200",
         "react": "^19.2.7",
@@ -71,6 +74,7 @@
         "react-markdown": "^10.1.0",
         "react-resizable-panels": "^4.12.0",
         "remark-gfm": "^4.0.1",
+        "sqlite-vec": "^0.1.9",
         "unpdf": "^1.6.2"
     }
 }

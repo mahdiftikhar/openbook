@@ -143,7 +143,7 @@ export function FilePanel({
     };
 
     const handleDeleteNote = async (filePath: string) => {
-        const ok = await notesApi.delete(filePath);
+        const ok = await notesApi.delete(workspacePath, filePath);
         if (!ok) return;
         if (activeNotePath === filePath) onOpenNote(null);
         setLocalVersion((v) => v + 1);
@@ -231,6 +231,7 @@ export function FilePanel({
             }
 
             const renamedPath = await notesApi.rename(
+                workspacePath,
                 filePath,
                 newBaseName.trim(),
             );
@@ -262,13 +263,17 @@ export function FilePanel({
             const newPath = await findCopyPath(copiedFilePath, targetDir);
             if (newPath === null) return;
 
-            const success = await notesApi.write(newPath, content);
+            const success = await notesApi.write(
+                workspacePath,
+                newPath,
+                content,
+            );
             if (success) {
                 setLocalVersion((v) => v + 1);
                 onNotesChanged();
             }
         },
-        [copiedFilePath, onNotesChanged],
+        [copiedFilePath, onNotesChanged, workspacePath],
     );
 
     const handleDuplicateFile = useCallback(
@@ -280,13 +285,17 @@ export function FilePanel({
             const newPath = await findCopyPath(filePath, dir);
             if (newPath === null) return;
 
-            const success = await notesApi.write(newPath, content);
+            const success = await notesApi.write(
+                workspacePath,
+                newPath,
+                content,
+            );
             if (success) {
                 setLocalVersion((v) => v + 1);
                 onNotesChanged();
             }
         },
-        [onNotesChanged],
+        [onNotesChanged, workspacePath],
     );
 
     const contextSourceEntry = contextMenu

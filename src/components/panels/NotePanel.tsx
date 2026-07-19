@@ -16,10 +16,12 @@ function firstName(line: string): string {
 }
 
 export function NotePanel({
+    workspacePath,
     notePath,
     onChangeNotePath,
     onNotesChanged,
 }: {
+    workspacePath: string;
     notePath: string | null;
     onChangeNotePath: (path: string | null) => void;
     onNotesChanged: () => void;
@@ -50,17 +52,21 @@ export function NotePanel({
         if (base.startsWith("untitled-")) {
             const head = firstName(text);
             if (head) {
-                const renamed = await notesApi.rename(path, head);
+                const renamed = await notesApi.rename(
+                    workspacePath,
+                    path,
+                    head,
+                );
                 if (renamed) {
                     currentPathRef.current = renamed;
                     onChangeNotePath(renamed);
                     onNotesChanged();
-                    await notesApi.write(renamed, text);
+                    await notesApi.write(workspacePath, renamed, text);
                     return;
                 }
             }
         }
-        await notesApi.write(path, text);
+        await notesApi.write(workspacePath, path, text);
     };
 
     useEffect(() => {

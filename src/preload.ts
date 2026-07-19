@@ -20,12 +20,26 @@ contextBridge.exposeInMainWorld("electron", {
             ipcRenderer.invoke(IPC_CHANNELS.notes.create, workspacePath),
         read: (filePath: string) =>
             ipcRenderer.invoke(IPC_CHANNELS.notes.read, filePath),
-        write: (filePath: string, content: string) =>
-            ipcRenderer.invoke(IPC_CHANNELS.notes.write, filePath, content),
-        rename: (oldPath: string, newBaseName: string) =>
-            ipcRenderer.invoke(IPC_CHANNELS.notes.rename, oldPath, newBaseName),
-        delete: (filePath: string) =>
-            ipcRenderer.invoke(IPC_CHANNELS.notes.delete, filePath),
+        write: (workspacePath: string, filePath: string, content: string) =>
+            ipcRenderer.invoke(
+                IPC_CHANNELS.notes.write,
+                workspacePath,
+                filePath,
+                content,
+            ),
+        rename: (workspacePath: string, oldPath: string, newBaseName: string) =>
+            ipcRenderer.invoke(
+                IPC_CHANNELS.notes.rename,
+                workspacePath,
+                oldPath,
+                newBaseName,
+            ),
+        delete: (workspacePath: string, filePath: string) =>
+            ipcRenderer.invoke(
+                IPC_CHANNELS.notes.delete,
+                workspacePath,
+                filePath,
+            ),
     },
     sources: {
         list: (workspacePath: string) =>

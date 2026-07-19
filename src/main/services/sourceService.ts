@@ -2,6 +2,11 @@ import fs from "node:fs";
 import path from "node:path";
 import { extractText, getDocumentProxy } from "unpdf";
 
+import {
+    indexSource,
+    removeSourceIndex,
+    renameSourceIndex,
+} from "../../agents/indexing/indexService";
 import { WORKSPACE_DIRS, WORKSPACE_FILES } from "../../workspaceLayout";
 import type { SourceEntry } from "../../shared/types";
 
@@ -124,6 +129,7 @@ export async function addPdfSource(
 
     let totalPages = 0;
     let extractionError: string | undefined;
+    let pages: SourceTextPage[] = [];
 
     try {
         const buffer = fs.readFileSync(destPath);
@@ -133,7 +139,7 @@ export async function addPdfSource(
         const pageTexts = Array.isArray(extracted.text)
             ? extracted.text
             : [extracted.text];
-        const pages = pageTexts.map((text, index) => ({
+        pages = pageTexts.map((text, index) => ({
             page: index + 1,
             text,
         }));
@@ -154,6 +160,10 @@ export async function addPdfSource(
     const index = readIndex(workspacePath);
     index[fileName] = entry;
     writeIndex(workspacePath, index);
+
+    if (!extractionError) {
+        await indexSource(workspacePath, fileName, pages);
+    }
 
     return entry;
 }
@@ -177,6 +187,7 @@ export function removeSource(workspacePath: string, fileName: string): boolean {
 
     delete index[fileName];
     writeIndex(workspacePath, index);
+    removeSourceIndex(workspacePath, fileName);
     return true;
 }
 
@@ -226,6 +237,7 @@ export function renameSource(
     delete index[oldFileName];
     index[newFileName] = renamed;
     writeIndex(workspacePath, index);
+    renameSourceIndex(workspacePath, oldFileName, newFileName);
     return renamed;
 }
 

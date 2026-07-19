@@ -1,6 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
 
+import {
+    indexNote,
+    removeNoteIndex,
+    renameNoteIndex,
+} from "../../agents/indexing/indexService";
 import { WORKSPACE_DIRS } from "../../workspaceLayout";
 
 function slugify(text: string): string {
@@ -48,9 +53,14 @@ export function readNote(filePath: string): string | null {
     }
 }
 
-export function writeNote(filePath: string, content: string): boolean {
+export async function writeNote(
+    workspacePath: string,
+    filePath: string,
+    content: string,
+): Promise<boolean> {
     try {
         fs.writeFileSync(filePath, content, "utf-8");
+        await indexNote(workspacePath, filePath, content);
         return true;
     } catch {
         return false;
@@ -58,6 +68,7 @@ export function writeNote(filePath: string, content: string): boolean {
 }
 
 export function renameNote(
+    workspacePath: string,
     oldPath: string,
     newBaseName: string,
 ): string | null {
@@ -72,12 +83,14 @@ export function renameNote(
     if (fs.existsSync(candidatePath)) return null;
 
     fs.renameSync(oldPath, candidatePath);
+    renameNoteIndex(workspacePath, oldPath, candidatePath);
     return candidatePath;
 }
 
-export function deleteNote(filePath: string): boolean {
+export function deleteNote(workspacePath: string, filePath: string): boolean {
     try {
         fs.rmSync(filePath);
+        removeNoteIndex(workspacePath, filePath);
         return true;
     } catch {
         return false;

@@ -31,22 +31,25 @@ function handleReadNote(
 
 function handleWriteNote(
     _event: IpcMainInvokeEvent,
+    workspacePath: string,
     filePath: string,
     content: string,
-): boolean {
-    return writeNote(filePath, content);
+): Promise<boolean> {
+    return writeNote(workspacePath, filePath, content);
 }
 
 function handleRenameNote(
     _event: IpcMainInvokeEvent,
+    workspacePath: string,
     oldPath: string,
     newBaseName: string,
 ): string | null {
-    return renameNote(oldPath, newBaseName);
+    return renameNote(workspacePath, oldPath, newBaseName);
 }
 
 async function handleDeleteNote(
     _event: IpcMainInvokeEvent,
+    workspacePath: string,
     filePath: string,
 ): Promise<boolean> {
     const baseName = path.basename(filePath);
@@ -62,7 +65,7 @@ async function handleDeleteNote(
         },
     );
     if (choice.response !== 0) return false;
-    return deleteNote(filePath);
+    return deleteNote(workspacePath, filePath);
 }
 
 export function registerNoteHandlers(): void {

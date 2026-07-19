@@ -77,12 +77,17 @@ export interface ElectronApi {
     notes: {
         create: (workspacePath: string) => Promise<string>;
         read: (filePath: string) => Promise<string | null>;
-        write: (filePath: string, content: string) => Promise<boolean>;
+        write: (
+            workspacePath: string,
+            filePath: string,
+            content: string,
+        ) => Promise<boolean>;
         rename: (
+            workspacePath: string,
             oldPath: string,
             newBaseName: string,
         ) => Promise<string | null>;
-        delete: (filePath: string) => Promise<boolean>;
+        delete: (workspacePath: string, filePath: string) => Promise<boolean>;
     };
     sources: {
         list: (workspacePath: string) => Promise<SourceEntry[]>;
